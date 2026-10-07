@@ -1,5 +1,13 @@
-public class Contribuyente
+using System.Text.Json.Serialization;
+
+namespace Backend.SatApi.Dtos
 {
-    public string NIT { get; set; } = string.Empty;
-    public string Nombre { get; set; } = string.Empty;
+    public class ContribuyenteDto
+    {
+        [JsonPropertyName("NIT")]
+        public string NIT { get; set; } = string.Empty;
+
+        [JsonPropertyName("nombre")]
+        public string Nombre { get; set; } = string.Empty;
+    }
 }
