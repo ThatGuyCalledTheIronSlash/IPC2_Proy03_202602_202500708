@@ -25,11 +25,19 @@ namespace Backend.SatApi.Datos
 
         public Repositorio()
         {
-            // Ubicación de la carpeta Almacen
-            rutaAlmacen = Path.Combine(AppContext.BaseDirectory, "Almacen");
-            if (!Directory.Exists(rutaAlmacen))
+            // Ubicación de la carpeta Almacen (prioriza la carpeta del proyecto si se ejecuta desde allí)
+            string dirActual = Path.Combine(Directory.GetCurrentDirectory(), "Almacen");
+            if (Directory.Exists(dirActual))
             {
-                Directory.CreateDirectory(rutaAlmacen);
+                rutaAlmacen = dirActual;
+            }
+            else
+            {
+                rutaAlmacen = Path.Combine(AppContext.BaseDirectory, "Almacen");
+                if (!Directory.Exists(rutaAlmacen))
+                {
+                    Directory.CreateDirectory(rutaAlmacen);
+                }
             }
 
             rutaRtu = Path.Combine(rutaAlmacen, "rtu.json");
