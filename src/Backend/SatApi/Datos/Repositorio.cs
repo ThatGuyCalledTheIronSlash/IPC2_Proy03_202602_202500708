@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using Backend.SatApi.Dtos;
+using Backend.SatApi.Dominio;
 
 namespace Backend.SatApi.Datos
 {

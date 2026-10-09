@@ -13,9 +13,7 @@ namespace Backend.SatApi.Servicios
             _repositorio = repositorio ?? Repositorio.Instancia;
         }
 
-        /// <summary>
         /// Procesa un arreglo de ContribuyenteDto, aplicando las reglas de negocio del enunciado.
-        /// </summary>
         public RespuestaRtu ProcesarRtu(ContribuyenteDto[] listaEntrada)
         {
             RespuestaRtu respuesta = new RespuestaRtu();
@@ -29,7 +27,7 @@ namespace Backend.SatApi.Servicios
             {
                 ContribuyenteDto contribuyente = listaEntrada[i];
 
-                // Regla 1: Validar el algoritmo de módulo 11
+                //Validar el algoritmo de módulo 11
                 if (!ValidadorNit.EsValido(contribuyente.NIT))
                 {
                     respuesta.Invalidos++;
@@ -37,7 +35,7 @@ namespace Backend.SatApi.Servicios
                     continue;
                 }
 
-                // Regla 2: Si es válido, comprobar si ya existe en la lista
+                //Si es válido, comprobar si ya existe en la lista
                 ContribuyenteDto? existente = _repositorio.BuscarContribuyente(contribuyente.NIT);
 
                 if (existente != null)

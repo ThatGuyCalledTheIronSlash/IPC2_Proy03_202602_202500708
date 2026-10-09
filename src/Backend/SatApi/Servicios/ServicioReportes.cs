@@ -152,6 +152,8 @@ namespace Backend.SatApi.Servicios
             int i = 0;
             while (n != null) { arreglo[i++] = (ResumenRangoFechaDto)n.Dato; n = n.Siguiente; }
             return arreglo;
+        }
+
         public ReporteErroresFechaDto[] ReporteErrores(DateTime inicio, DateTime fin)
         {
             ListaSimple resumenErrores = new ListaSimple();
@@ -163,7 +165,7 @@ namespace Backend.SatApi.Servicios
                 Factura f = (Factura)actualRechazadas.Dato;
                 if (f.FechaParseada.Date >= inicio.Date && f.FechaParseada.Date <= fin.Date)
                 {
-                    ReporteErroresFechaDto dto = ObtenerODrearReporte(resumenErrores, f.FechaParseada);
+                    ReporteErroresFechaDto dto = ObtenerOCrearReporte(resumenErrores, f.FechaParseada);
                     dto.TotalRecibidas++;
 
                     if (f.MotivoRechazo == TipoError.NitEmisorInvalido.ToString()) dto.ErroresNitEmisorInvalido++;
@@ -184,12 +186,9 @@ namespace Backend.SatApi.Servicios
                 Factura f = (Factura)actualAprobadas.Dato;
                 if (f.FechaParseada.Date >= inicio.Date && f.FechaParseada.Date <= fin.Date)
                 {
-                    ReporteErroresFechaDto dto = ObtenerODrearReporte(resumenErrores, f.FechaParseada);
+                    ReporteErroresFechaDto dto = ObtenerOCrearReporte(resumenErrores, f.FechaParseada);
                     dto.TotalRecibidas++;
                     dto.TotalSinErrores++;
-                    // Para emisores y receptores distintos se requeriría una sub-lista para cada fecha,
-                    // pero para simplificar, en este paso asumimos que cuentan 1 si no está implementado
-                    // la agrupación. Para hacerlo perfecto, habría que iterar una lista anidada por fecha.
                 }
                 actualAprobadas = actualAprobadas.Siguiente;
             }
@@ -201,7 +200,7 @@ namespace Backend.SatApi.Servicios
             return arreglo;
         }
 
-        private ReporteErroresFechaDto ObtenerODrearReporte(ListaSimple lista, DateTime fecha)
+        private ReporteErroresFechaDto ObtenerOCrearReporte(ListaSimple lista, DateTime fecha)
         {
             string fechaStr = fecha.ToString("dd/MM/yyyy");
             Nodo? actRes = lista.Primero;
