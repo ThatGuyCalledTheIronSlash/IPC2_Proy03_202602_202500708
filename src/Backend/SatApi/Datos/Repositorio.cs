@@ -138,9 +138,7 @@ namespace Backend.SatApi.Datos
             }
         }
 
-        /// <summary>
         /// Recorre la ListaSimple nodo por nodo para buscar un contribuyente por su NIT.
-        /// </summary>
         public ContribuyenteDto? BuscarContribuyente(string nit)
         {
             if (string.IsNullOrWhiteSpace(nit)) return null;
@@ -159,10 +157,7 @@ namespace Backend.SatApi.Datos
 
             return null;
         }
-
-        /// <summary>
         /// Guarda todos los contribuyentes de la ListaSimple en Almacen/rtu.json
-        /// </summary>
         public void GuardarRtu()
         {
             // Convertimos la ListaSimple a un arreglo primitivo para poder serializarlo a JSON
@@ -179,9 +174,8 @@ namespace Backend.SatApi.Datos
             File.WriteAllText(rutaRtu, json);
         }
 
-        /// <summary>
         /// Carga los datos de Almacen/rtu.json a la ListaSimple en memoria al iniciar
-        /// </summary>
+
         public void CargarRtu()
         {
             if (!File.Exists(rutaRtu)) return;
@@ -200,16 +194,18 @@ namespace Backend.SatApi.Datos
             }
         }
 
-        /// <summary>
         /// Reinicia todos los datos en memoria y borra los archivos almacenados.
-        /// </summary>
         public void LimpiarTodo()
         {
             Contribuyentes = new ListaSimple();
             FacturasAprobadas = new ListaSimple();
             FacturasRechazadas = new ListaSimple();
+            CorrelativosDiarios = new ListaSimple();
 
             if (File.Exists(rutaRtu)) File.Delete(rutaRtu);
+            if (File.Exists(rutaAprobadas)) File.Delete(rutaAprobadas);
+            if (File.Exists(rutaRechazadas)) File.Delete(rutaRechazadas);
+            if (File.Exists(rutaCorrelativos)) File.Delete(rutaCorrelativos);
         }
     }
 }

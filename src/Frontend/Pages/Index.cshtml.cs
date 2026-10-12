@@ -22,8 +22,15 @@ public class IndexModel : PageModel
     public string? MensajeError { get; set; }
     public string? MensajeExito { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public bool Inicializado { get; set; }
+
     public void OnGet()
     {
+        if (Inicializado)
+        {
+            MensajeExito = "El sistema ha sido reiniciado a su estado inicial. Todos los datos en memoria y archivos fueron eliminados correctamente.";
+        }
     }
 
     public async Task<IActionResult> OnPostAsync()

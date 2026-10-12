@@ -45,11 +45,9 @@
                         </li>
                     </ul>
                     <div class="d-flex">
-                        <form method="post" action="http://localhost:5000/api/Inicializar" onsubmit="return confirm('¿Estás seguro de que deseas reiniciar todos los datos del sistema?');">
-                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                Inicializar Datos
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="inicializarSistema()">
+                            Inicializar Datos
+                        </button>
                     </div>
                 </div>
             </div>
@@ -69,6 +67,30 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        async function inicializarSistema() {
+            if (!confirm('¿Estás seguro de que deseas inicializar el sistema?\n\nEsta acción borrará todos los contribuyentes del RTU, facturas autorizadas/rechazadas y correlativos diarios.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/api/Inicializar', {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    alert('¡Sistema inicializado con éxito!\nSe han limpiado todos los datos en memoria y archivos.');
+                    window.location.href = '/Index?inicializado=true';
+                } else {
+                    const text = await response.text();
+                    alert('Error en la API al inicializar: ' + text);
+                }
+            } catch (err) {
+                alert('No se pudo conectar con la API en http://localhost:5000/. Verifique que el Backend esté en ejecución.');
+            }
+        }
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
