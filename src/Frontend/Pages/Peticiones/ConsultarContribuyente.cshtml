@@ -1,0 +1,171 @@
+@page
+@model Frontend.Pages.Peticiones.ConsultarContribuyenteModel
+@{
+    ViewData["Title"] = "Consultar Contribuyente - SAT";
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold text-dark">Consultar Contribuyente</h1>
+            <p class="lead text-muted">
+                Consulte el historial de facturación de un contribuyente, filtrando por facturas emitidas o recibidas dentro de un rango de fechas.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.MensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Error al realizar la consulta</h5>
+            <p class="mb-0">@Model.MensajeError</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Tarjeta de Filtros de Búsqueda -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border border-2 border-dark-subtle h-100">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="card-title mb-0">Parámetros de Consulta</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <!-- NIT -->
+                        <div class="mb-3">
+                            <label for="nit" class="form-label fw-semibold">NIT del Contribuyente:</label>
+                            <input type="text" class="form-control" id="nit" name="Nit" value="@Model.Nit" placeholder="Ej. 7378106" required />
+                        </div>
+
+                        <!-- Tipo de Facturas -->
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Tipo de Facturas:</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Emitidas" id="tipoEmitidas" value="true" @(Model.Emitidas ? "checked" : "") />
+                                    <label class="form-check-label" for="tipoEmitidas">
+                                        Emitidas (Ventas)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Emitidas" id="tipoRecibidas" value="false" @(!Model.Emitidas ? "checked" : "") />
+                                    <label class="form-check-label" for="tipoRecibidas">
+                                        Recibidas (Compras)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rango de Fechas -->
+                        <div class="mb-3">
+                            <label for="desde" class="form-label fw-semibold">Fecha Inicial (Desde):</label>
+                            <input type="date" class="form-control" id="desde" name="Desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" required />
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="hasta" class="form-label fw-semibold">Fecha Final (Hasta):</label>
+                            <input type="date" class="form-control" id="hasta" name="Hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" required />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                Consultar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Resultados -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border border-2 border-dark-subtle h-100">
+                <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Detalle de Facturación</h5>
+                    @if (Model.ConsultaRealizada)
+                    {
+                        <span class="badge bg-success">Consulta Exitosa</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Sin consulta</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (Model.ConsultaRealizada && Model.Resultado != null)
+                    {
+                        <!-- Tarjeta resumen superior -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded border border-secondary-subtle text-center">
+                                    <div class="text-muted small fw-semibold text-uppercase">Total Facturado en el Rango</div>
+                                    <div class="fs-3 fw-bold text-primary">Q @Model.Resultado.TotalFacturadoRango.ToString("N2")</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded border border-secondary-subtle text-center">
+                                    <div class="text-muted small fw-semibold text-uppercase">Días con Facturación</div>
+                                    <div class="fs-3 fw-bold text-dark">@Model.Resultado.DetallePorFecha.Length</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (Model.Resultado.DetallePorFecha.Length > 0)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle border">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th scope="col" class="text-center" style="width: 60px;">#</th>
+                                            <th scope="col">Fecha</th>
+                                            <th scope="col" class="text-center">Facturas Autorizadas</th>
+                                            <th scope="col" class="text-end">Monto Total Facturado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            int idx = 1;
+                                            int totalFacturas = 0;
+                                        }
+                                        @foreach (var item in Model.Resultado.DetallePorFecha)
+                                        {
+                                            totalFacturas += item.CantidadAutorizadas;
+                                            <tr>
+                                                <td class="text-center fw-semibold text-muted">@idx</td>
+                                                <td class="fw-semibold">@item.Fecha</td>
+                                                <td class="text-center"><span class="badge bg-primary fs-6">@item.CantidadAutorizadas</span></td>
+                                                <td class="text-end fw-bold text-success">Q @item.MontoTotalFacturado.ToString("N2")</td>
+                                            </tr>
+                                            idx++;
+                                        }
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="2" class="text-end text-uppercase">Totales Acumulados:</td>
+                                            <td class="text-center">@totalFacturas</td>
+                                            <td class="text-end text-primary">Q @Model.Resultado.TotalFacturadoRango.ToString("N2")</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <p class="mb-0 fs-5">No se encontraron facturas @(Model.Emitidas ? "emitidas" : "recibidas") para el NIT <strong>@Model.Nit</strong> en las fechas seleccionadas.</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <p class="mb-0">Ingrese un NIT y seleccione el rango de fechas para consultar.</p>
+                            <small>Al presionar "Consultar", el detalle por fecha y el monto total acumulado se desplegarán en esta tabla.</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
