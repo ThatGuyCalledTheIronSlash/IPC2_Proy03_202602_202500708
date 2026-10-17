@@ -1,0 +1,229 @@
+@page
+@model Frontend.Pages.Peticiones.ResumenRangoModel
+@{
+    ViewData["Title"] = "Resumen por Rango de Fechas - SAT";
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold text-dark">Resumen por Rango de Fechas</h1>
+            <p class="lead text-muted">
+                Consulte el valor total autorizado por cada fecha en el rango seleccionado, con opción de visualizar montos con IVA o sin IVA.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.MensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Error en la consulta</h5>
+            <p class="mb-0">@Model.MensajeError</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Tarjeta de Parámetros de Filtro -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border border-2 border-dark-subtle h-100">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="card-title mb-0">Parámetros del Rango</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <!-- Fecha Inicial -->
+                        <div class="mb-3">
+                            <label for="desde" class="form-label fw-semibold">Fecha Inicial (Desde):</label>
+                            <input type="date" class="form-control" id="desde" name="Desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" required />
+                        </div>
+
+                        <!-- Fecha Final -->
+                        <div class="mb-3">
+                            <label for="hasta" class="form-label fw-semibold">Fecha Final (Hasta):</label>
+                            <input type="date" class="form-control" id="hasta" name="Hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" required />
+                        </div>
+
+                        <!-- Modalidad IVA -->
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold">Modalidad de Montos:</label>
+                            <div class="d-flex flex-column gap-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="SinIva" id="conIva" value="false" @(!Model.SinIva ? "checked" : "") />
+                                    <label class="form-check-label" for="conIva">
+                                        <strong>Con IVA</strong> (Monto Total Facturado)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="SinIva" id="sinIva" value="true" @(Model.SinIva ? "checked" : "") />
+                                    <label class="form-check-label" for="sinIva">
+                                        <strong>Sin IVA</strong> (Valor Neto de la Factura)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                Consultar Rango
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Resultados -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border border-2 border-dark-subtle h-100">
+                <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Montos Autorizados por Fecha</h5>
+                    @if (Model.ConsultaRealizada)
+                    {
+                        <span class="badge bg-success">@(Model.SinIva ? "Valores Sin IVA" : "Valores Con IVA")</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Sin consulta</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (Model.ConsultaRealizada && Model.Resultados != null)
+                    {
+                        decimal totalRango = 0;
+                        foreach (var item in Model.Resultados)
+                        {
+                            totalRango += item.ValorAutorizado;
+                        }
+
+                        <!-- Métricas superiores -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded border border-secondary-subtle text-center">
+                                    <div class="text-muted small fw-semibold text-uppercase">Total Acumulado en el Rango</div>
+                                    <div class="fs-3 fw-bold text-primary">Q @totalRango.ToString("N2")</div>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-3 bg-light rounded border border-secondary-subtle text-center">
+                                    <div class="text-muted small fw-semibold text-uppercase">Días con Autorizaciones</div>
+                                    <div class="fs-3 fw-bold text-dark">@Model.Resultados.Length</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (Model.Resultados.Length > 0)
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover align-middle border">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th scope="col" class="text-center" style="width: 60px;">#</th>
+                                            <th scope="col">Fecha</th>
+                                            <th scope="col" class="text-end">Monto Autorizado (@(Model.SinIva ? "Sin IVA" : "Con IVA"))</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            int idx = 1;
+                                        }
+                                        @foreach (var r in Model.Resultados)
+                                        {
+                                            <tr>
+                                                <td class="text-center fw-semibold text-muted">@idx</td>
+                                                <td class="fw-semibold">@r.Fecha</td>
+                                                <td class="text-end fw-bold text-success fs-6">Q @r.ValorAutorizado.ToString("N2")</td>
+                                            </tr>
+                                            idx++;
+                                        }
+                                    </tbody>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td colspan="2" class="text-end text-uppercase">Total General del Período:</td>
+                                            <td class="text-end text-primary fs-5">Q @totalRango.ToString("N2")</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+
+                            <!-- Gráfica Interactiva -->
+                            <div class="mt-4 pt-3 border-top">
+                                <h6 class="fw-bold text-dark mb-3">Evolución de Montos Autorizados por Fecha</h6>
+                                <div style="height: 300px;">
+                                    <canvas id="chartRango"></canvas>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <p class="mb-0 fs-5">No se encontraron facturas autorizadas en el rango de fechas seleccionado.</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <p class="mb-0">Defina el rango de fechas y la modalidad de IVA para consultar.</p>
+                            <small>Al hacer clic en "Consultar Rango", se mostrará el total autorizado agrupado por día.</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.ConsultaRealizada && Model.Resultados != null && Model.Resultados.Length > 0)
+    {
+        string[] fechas = new string[Model.Resultados.Length];
+        decimal[] montos = new decimal[Model.Resultados.Length];
+        for (int i = 0; i < Model.Resultados.Length; i++)
+        {
+            fechas[i] = Model.Resultados[i].Fecha;
+            montos[i] = Model.Resultados[i].ValorAutorizado;
+        }
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script>
+            const fechas = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(fechas));
+            const montos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(montos));
+
+            const ctx = document.getElementById('chartRango').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: fechas,
+                    datasets: [{
+                        label: '@(Model.SinIva ? "Monto Autorizado Sin IVA (Q)" : "Monto Autorizado Con IVA (Q)")',
+                        data: montos,
+                        backgroundColor: '#0d6efd',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` Monto: Q ${ctx.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: val => 'Q ' + val.toLocaleString()
+                            }
+                        }
+                    }
+                }
+            });
+        </script>
+    }
+}
