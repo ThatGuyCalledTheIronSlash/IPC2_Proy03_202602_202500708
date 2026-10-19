@@ -25,7 +25,7 @@
 
     <div class="row g-4">
         <!-- Tarjeta de Filtros de Búsqueda -->
-        <div class="col-lg-4">
+        <div class="col-lg-4 no-print">
             <div class="card shadow-sm border border-2 border-dark-subtle h-100">
                 <div class="card-header bg-dark text-white py-3">
                     <h5 class="card-title mb-0">Parámetros de Consulta</h5>
@@ -83,18 +83,39 @@
             <div class="card shadow-sm border border-2 border-dark-subtle h-100">
                 <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Detalle de Facturación</h5>
-                    @if (Model.ConsultaRealizada)
-                    {
-                        <span class="badge bg-success">Consulta Exitosa</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Sin consulta</span>
-                    }
+                    <div class="d-flex align-items-center gap-2">
+                        @if (Model.ConsultaRealizada && Model.Resultado != null && Model.Resultado.DetallePorFecha.Length > 0)
+                        {
+                            <button type="button" class="btn btn-outline-light btn-sm no-print shadow-sm" onclick="window.print()">
+                                📄 Generar Reporte PDF
+                            </button>
+                        }
+                        @if (Model.ConsultaRealizada)
+                        {
+                            <span class="badge bg-success no-print">Consulta Exitosa</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary no-print">Sin consulta</span>
+                        }
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (Model.ConsultaRealizada && Model.Resultado != null)
                     {
+                        <!-- Membrete oficial exclusivo para el reporte PDF -->
+                        <div class="print-only mb-4">
+                            <div class="text-center border-bottom pb-2 mb-3">
+                                <h3 class="fw-bold mb-1">SUPERINTENDENCIA DE ADMINISTRACIÓN TRIBUTARIA</h3>
+                                <h5 class="text-muted text-uppercase mb-1">Reporte de Facturación de Contribuyente</h5>
+                                <small class="text-muted">Fecha y hora de emisión: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</small>
+                            </div>
+                            <div class="row g-2 mb-3" style="font-size: 10pt;">
+                                <div class="col-6"><strong>NIT Consultado:</strong> @Model.Nit</div>
+                                <div class="col-6"><strong>Tipo de Operación:</strong> @(Model.Emitidas ? "Facturas Emitidas (Ventas)" : "Facturas Recibidas (Compras)")</div>
+                                <div class="col-12"><strong>Rango de Fechas:</strong> @(Model.Desde?.ToString("dd/MM/yyyy")) al @(Model.Hasta?.ToString("dd/MM/yyyy"))</div>
+                            </div>
+                        </div>
                         <!-- Tarjeta resumen superior -->
                         <div class="row g-3 mb-4">
                             <div class="col-sm-6">

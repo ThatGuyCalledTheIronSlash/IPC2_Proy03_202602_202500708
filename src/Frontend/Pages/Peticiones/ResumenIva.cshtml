@@ -25,7 +25,7 @@
 
     <div class="row g-4">
         <!-- Tarjeta de Selección de Fecha -->
-        <div class="col-lg-4">
+        <div class="col-lg-4 no-print">
             <div class="card shadow-sm border border-2 border-dark-subtle h-100">
                 <div class="card-header bg-dark text-white py-3">
                     <h5 class="card-title mb-0">Seleccionar Fecha</h5>
@@ -55,18 +55,35 @@
             <div class="card shadow-sm border border-2 border-dark-subtle h-100">
                 <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Detalle de IVA por Contribuyente</h5>
-                    @if (Model.ConsultaRealizada)
-                    {
-                        <span class="badge bg-success">Fecha: @(Model.Fecha?.ToString("dd/MM/yyyy"))</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-secondary">Sin consulta</span>
-                    }
+                    <div class="d-flex align-items-center gap-2">
+                        @if (Model.ConsultaRealizada && Model.Resultados != null && Model.Resultados.Length > 0)
+                        {
+                            <button type="button" class="btn btn-outline-light btn-sm no-print shadow-sm" onclick="window.print()">
+                                📄 Generar Reporte PDF
+                            </button>
+                        }
+                        @if (Model.ConsultaRealizada)
+                        {
+                            <span class="badge bg-success no-print">Fecha: @(Model.Fecha?.ToString("dd/MM/yyyy"))</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary no-print">Sin consulta</span>
+                        }
+                    </div>
                 </div>
                 <div class="card-body">
                     @if (Model.ConsultaRealizada && Model.Resultados != null)
                     {
+                        <!-- Membrete oficial exclusivo para el reporte PDF -->
+                        <div class="print-only mb-4">
+                            <div class="text-center border-bottom pb-2 mb-3">
+                                <h3 class="fw-bold mb-1">SUPERINTENDENCIA DE ADMINISTRACIÓN TRIBUTARIA</h3>
+                                <h5 class="text-muted text-uppercase mb-1">Resumen de IVA por Fecha y NIT</h5>
+                                <small class="text-muted">Fecha consultada: @(Model.Fecha?.ToString("dd/MM/yyyy")) | Emitido el: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</small>
+                            </div>
+                        </div>
+
                         decimal totalIvaEmitido = 0;
                         decimal totalIvaRecibido = 0;
                         foreach (var item in Model.Resultados)
@@ -141,7 +158,7 @@
                             </div>
 
                             <!-- Gráfica Interactiva -->
-                            <div class="mt-4 pt-3 border-top">
+                            <div class="mt-4 pt-3 border-top no-print">
                                 <h6 class="fw-bold text-dark mb-3">Comparativa de IVA Emitido vs. Recibido por NIT</h6>
                                 <div style="height: 300px;">
                                     <canvas id="chartIva"></canvas>
