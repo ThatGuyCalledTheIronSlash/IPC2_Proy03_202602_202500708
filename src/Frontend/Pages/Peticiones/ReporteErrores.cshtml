@@ -1,0 +1,167 @@
+@page
+@model Frontend.Pages.Peticiones.ReporteErroresModel
+@{
+    ViewData["Title"] = "Diagnóstico de Errores - SAT";
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold text-dark">Diagnóstico de Errores por Fecha</h1>
+            <p class="lead text-muted">
+                Consulte el detalle de errores de facturas rechazadas agrupadas por fecha en el rango seleccionado.
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.MensajeError))
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Error en la consulta</h5>
+            <p class="mb-0">@Model.MensajeError</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Tarjeta de Parámetros de Filtro -->
+        <div class="col-lg-4 no-print">
+            <div class="card shadow-sm border border-2 border-dark-subtle h-100">
+                <div class="card-header bg-dark text-white py-3">
+                    <h5 class="card-title mb-0">Rango de Fechas</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="desde" class="form-label fw-semibold">Fecha Inicial (Desde):</label>
+                            <input type="date" class="form-control" id="desde" name="Desde" value="@(Model.Desde?.ToString("yyyy-MM-dd"))" required />
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="hasta" class="form-label fw-semibold">Fecha Final (Hasta):</label>
+                            <input type="date" class="form-control" id="hasta" name="Hasta" value="@(Model.Hasta?.ToString("yyyy-MM-dd"))" required />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                                Consultar Errores
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Resultados -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border border-2 border-dark-subtle h-100">
+                <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Detalle de Errores por Fecha</h5>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (Model.ConsultaRealizada && Model.Resultados != null && Model.Resultados.Length > 0)
+                        {
+                            <button type="button" class="btn btn-outline-light btn-sm no-print shadow-sm" onclick="window.print()">
+                                📄 Generar Reporte PDF
+                            </button>
+                        }
+                        @if (Model.ConsultaRealizada)
+                        {
+                            <span class="badge bg-success no-print">Consulta Exitosa</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary no-print">Sin consulta</span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.ConsultaRealizada && Model.Resultados != null)
+                    {
+                        <!-- Membrete oficial exclusivo para el reporte PDF -->
+                        <div class="print-only mb-4">
+                            <div class="text-center border-bottom pb-2 mb-3">
+                                <h3 class="fw-bold mb-1">SUPERINTENDENCIA DE ADMINISTRACIÓN TRIBUTARIA</h3>
+                                <h5 class="text-muted text-uppercase mb-1">Diagnóstico de Errores por Período</h5>
+                                <small class="text-muted">Período: @(Model.Desde?.ToString("dd/MM/yyyy")) al @(Model.Hasta?.ToString("dd/MM/yyyy")) | Emitido el: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</small>
+                            </div>
+                        </div>
+
+                        @if (Model.Resultados.Length > 0)
+                        {
+                            @foreach (var item in Model.Resultados)
+                            {
+                                <div class="mb-4 border rounded p-3 shadow-sm">
+                                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">📅 Fecha: @item.Fecha</h6>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6 col-sm-4">
+                                            <div class="p-2 bg-light rounded border text-center">
+                                                <div class="text-muted small text-uppercase">Recibidas</div>
+                                                <div class="fs-5 fw-bold text-dark">@item.TotalRecibidas</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-4">
+                                            <div class="p-2 bg-success bg-opacity-10 rounded border border-success text-center">
+                                                <div class="text-muted small text-uppercase">Sin Error</div>
+                                                <div class="fs-5 fw-bold text-success">@item.TotalSinErrores</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-4">
+                                            <div class="p-2 bg-danger bg-opacity-10 rounded border border-danger text-center">
+                                                <div class="text-muted small text-uppercase">Con Error</div>
+                                                <div class="fs-5 fw-bold text-danger">@(item.TotalRecibidas - item.TotalSinErrores)</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-4">
+                                            <div class="p-2 bg-light rounded border text-center">
+                                                <div class="text-muted small text-uppercase">Emisores Distintos</div>
+                                                <div class="fs-5 fw-bold text-primary">@item.CantidadEmisoresDistintos</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-4">
+                                            <div class="p-2 bg-light rounded border text-center">
+                                                <div class="text-muted small text-uppercase">Receptores Distintos</div>
+                                                <div class="fs-5 fw-bold text-primary">@item.CantidadReceptoresDistintos</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tabla detalle de errores -->
+                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Tipo de Error</th>
+                                                <th class="text-center">Cantidad</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td>NIT Emisor Inválido (formato)</td>     <td class="text-center @(item.ErroresNitEmisorInvalido > 0 ? "text-danger fw-bold" : "")">@item.ErroresNitEmisorInvalido</td></tr>
+                                            <tr><td>NIT Receptor Inválido (formato)</td>   <td class="text-center @(item.ErroresNitReceptorInvalido > 0 ? "text-danger fw-bold" : "")">@item.ErroresNitReceptorInvalido</td></tr>
+                                            <tr><td>NIT Emisor Inexistente en RTU</td>     <td class="text-center @(item.ErroresNitEmisorInexistente > 0 ? "text-danger fw-bold" : "")">@item.ErroresNitEmisorInexistente</td></tr>
+                                            <tr><td>NIT Receptor Inexistente en RTU</td>   <td class="text-center @(item.ErroresNitReceptorInexistente > 0 ? "text-danger fw-bold" : "")">@item.ErroresNitReceptorInexistente</td></tr>
+                                            <tr><td>IVA Mal Calculado</td>                 <td class="text-center @(item.ErroresIvaMalCalculado > 0 ? "text-danger fw-bold" : "")">@item.ErroresIvaMalCalculado</td></tr>
+                                            <tr><td>Total Mal Calculado</td>               <td class="text-center @(item.ErroresTotalMalCalculado > 0 ? "text-danger fw-bold" : "")">@item.ErroresTotalMalCalculado</td></tr>
+                                            <tr><td>Referencia Duplicada</td>              <td class="text-center @(item.ErroresReferenciaDuplicada > 0 ? "text-danger fw-bold" : "")">@item.ErroresReferenciaDuplicada</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <p class="mb-0 fs-5">No se encontraron facturas en el rango de fechas seleccionado.</p>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <p class="mb-0">Defina el rango de fechas para consultar el diagnóstico de errores.</p>
+                            <small>Se mostrará una tarjeta por cada fecha con el detalle de errores encontrados.</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -43,4 +43,43 @@ namespace Frontend.Models
         [JsonPropertyName("valorAutorizado")]
         public decimal ValorAutorizado { get; set; }
     }
+
+    public class ReporteErroresFecha
+    {
+        [JsonPropertyName("fecha")]
+        public string Fecha { get; set; } = string.Empty;
+
+        [JsonPropertyName("totalRecibidas")]
+        public int TotalRecibidas { get; set; }
+
+        [JsonPropertyName("erroresNitEmisorInvalido")]
+        public int ErroresNitEmisorInvalido { get; set; }
+
+        [JsonPropertyName("erroresNitReceptorInvalido")]
+        public int ErroresNitReceptorInvalido { get; set; }
+
+        [JsonPropertyName("erroresNitEmisorInexistente")]
+        public int ErroresNitEmisorInexistente { get; set; }
+
+        [JsonPropertyName("erroresNitReceptorInexistente")]
+        public int ErroresNitReceptorInexistente { get; set; }
+
+        [JsonPropertyName("erroresIvaMalCalculado")]
+        public int ErroresIvaMalCalculado { get; set; }
+
+        [JsonPropertyName("erroresTotalMalCalculado")]
+        public int ErroresTotalMalCalculado { get; set; }
+
+        [JsonPropertyName("erroresReferenciaDuplicada")]
+        public int ErroresReferenciaDuplicada { get; set; }
+
+        [JsonPropertyName("totalSinErrores")]
+        public int TotalSinErrores { get; set; }
+
+        [JsonPropertyName("cantidadEmisoresDistintos")]
+        public int CantidadEmisoresDistintos { get; set; }
+
+        [JsonPropertyName("cantidadReceptoresDistintos")]
+        public int CantidadReceptoresDistintos { get; set; }
+    }
 }

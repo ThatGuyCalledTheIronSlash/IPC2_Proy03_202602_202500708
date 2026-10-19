@@ -46,5 +46,12 @@ namespace Backend.SatApi.Dtos
         public int TotalSinErrores { get; set; }
         public int CantidadEmisoresDistintos { get; set; }
         public int CantidadReceptoresDistintos { get; set; }
+
+        // Estructuras internas para acumular NITs únicos (no se serializan en la respuesta JSON)
+        [System.Text.Json.Serialization.JsonIgnore]
+        public Backend.SatApi.Datos.ListaSimple NitsEmisoresUnicos { get; } = new Backend.SatApi.Datos.ListaSimple();
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public Backend.SatApi.Datos.ListaSimple NitsReceptoresUnicos { get; } = new Backend.SatApi.Datos.ListaSimple();
     }
 }

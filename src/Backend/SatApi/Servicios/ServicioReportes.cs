@@ -228,13 +228,18 @@ namespace Backend.SatApi.Servicios
                     ReporteErroresFechaDto dto = ObtenerOCrearReporte(resumenErrores, f.FechaParseada);
                     dto.TotalRecibidas++;
 
-                    if (f.MotivoRechazo == TipoError.NitEmisorInvalido.ToString()) dto.ErroresNitEmisorInvalido++;
-                    else if (f.MotivoRechazo == TipoError.NitReceptorInvalido.ToString()) dto.ErroresNitReceptorInvalido++;
+                    if (f.MotivoRechazo == TipoError.NitEmisorInvalido.ToString())         dto.ErroresNitEmisorInvalido++;
+                    else if (f.MotivoRechazo == TipoError.NitReceptorInvalido.ToString())  dto.ErroresNitReceptorInvalido++;
                     else if (f.MotivoRechazo == TipoError.NitEmisorInexistente.ToString()) dto.ErroresNitEmisorInexistente++;
                     else if (f.MotivoRechazo == TipoError.NitReceptorInexistente.ToString()) dto.ErroresNitReceptorInexistente++;
-                    else if (f.MotivoRechazo == TipoError.IvaMalCalculado.ToString()) dto.ErroresIvaMalCalculado++;
-                    else if (f.MotivoRechazo == TipoError.TotalMalCalculado.ToString()) dto.ErroresTotalMalCalculado++;
-                    else if (f.MotivoRechazo == TipoError.ReferenciaDuplicada.ToString()) dto.ErroresReferenciaDuplicada++;
+                    else if (f.MotivoRechazo == TipoError.IvaMalCalculado.ToString())      dto.ErroresIvaMalCalculado++;
+                    else if (f.MotivoRechazo == TipoError.TotalMalCalculado.ToString())    dto.ErroresTotalMalCalculado++;
+                    else if (f.MotivoRechazo == TipoError.ReferenciaDuplicada.ToString())  dto.ErroresReferenciaDuplicada++;
+
+                    // Acumular NITs para el conteo de distintos (solo cuando el NIT es válido y existente)
+                    // Para rechazos por formato inválido o inexistente, aún queremos contar los que participaron
+                    AgregarNitDistinto(dto.NitsEmisoresUnicos,   f.NitEmisor);
+                    AgregarNitDistinto(dto.NitsReceptoresUnicos, f.NitReceptor);
                 }
 
                 actualRechazadas = actualRechazadas.Siguiente;
@@ -251,18 +256,25 @@ namespace Backend.SatApi.Servicios
                     ReporteErroresFechaDto dto = ObtenerOCrearReporte(resumenErrores, f.FechaParseada);
                     dto.TotalRecibidas++;
                     dto.TotalSinErrores++;
+
+                    AgregarNitDistinto(dto.NitsEmisoresUnicos,   f.NitEmisor);
+                    AgregarNitDistinto(dto.NitsReceptoresUnicos, f.NitReceptor);
                 }
 
                 actualAprobadas = actualAprobadas.Siguiente;
             }
 
+            // Transferir conteos de NITs únicos al DTO y armar arreglo final
             ReporteErroresFechaDto[] arreglo = new ReporteErroresFechaDto[resumenErrores.Cantidad];
             Nodo? n = resumenErrores.Primero;
             int i = 0;
 
             while (n != null)
             {
-                arreglo[i++] = (ReporteErroresFechaDto)n.Dato;
+                ReporteErroresFechaDto dto = (ReporteErroresFechaDto)n.Dato;
+                dto.CantidadEmisoresDistintos  = dto.NitsEmisoresUnicos.Cantidad;
+                dto.CantidadReceptoresDistintos = dto.NitsReceptoresUnicos.Cantidad;
+                arreglo[i++] = dto;
                 n = n.Siguiente;
             }
 
@@ -287,6 +299,25 @@ namespace Backend.SatApi.Servicios
             var nuevo = new ReporteErroresFechaDto { Fecha = fechaStr };
             lista.Insertar(nuevo);
             return nuevo;
+        }
+
+        /// <summary>
+        /// Agrega un NIT a una ListaSimple de strings únicos (sin duplicados).
+        /// </summary>
+        private static void AgregarNitDistinto(ListaSimple lista, string nit)
+        {
+            if (string.IsNullOrWhiteSpace(nit)) return;
+
+            string nitLimpio = nit.Trim().ToUpper();
+            Nodo? act = lista.Primero;
+
+            while (act != null)
+            {
+                if ((string)act.Dato == nitLimpio) return; // ya existe
+                act = act.Siguiente;
+            }
+
+            lista.Insertar(nitLimpio);
         }
     }
 }
