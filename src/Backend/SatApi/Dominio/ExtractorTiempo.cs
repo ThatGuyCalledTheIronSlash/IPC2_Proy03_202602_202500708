@@ -3,14 +3,19 @@ using System.Text.RegularExpressions;
 
 namespace Backend.SatApi.Dominio
 {
+// Extractor de fecha y hora 
     public class ExtractorTiempo
     {
         public static DateTime? Extraer(string tiempoStr)
         {
-            if (string.IsNullOrWhiteSpace(tiempoStr)) return null;
+            if (string.IsNullOrWhiteSpace(tiempoStr))
+            {
+                return null;
+            }
 
+            // Expresión regular para capturar: dd/MM/yyyy HH:mm
             var match = Regex.Match(tiempoStr, @"(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2})");
-            
+
             if (match.Success)
             {
                 int dia = int.Parse(match.Groups[1].Value);
@@ -19,15 +24,16 @@ namespace Backend.SatApi.Dominio
                 int hora = int.Parse(match.Groups[4].Value);
                 int minuto = int.Parse(match.Groups[5].Value);
 
-                try 
+                try
                 {
                     return new DateTime(anio, mes, dia, hora, minuto, 0);
                 }
-                catch 
+                catch
                 {
                     return null;
                 }
             }
+
             return null;
         }
     }

@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# SAT API Almacen (persistencia en tiempo de ejecucion)
+Almacen/
+
 # User-specific files
 *.rsuser
 *.suo

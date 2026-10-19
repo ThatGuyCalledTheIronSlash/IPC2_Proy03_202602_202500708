@@ -1,7 +1,20 @@
-public class Nodo
+namespace Backend.SatApi.Datos
 {
-    private object dato;
-    public Nodo? Siguiente;
-    public Nodo(object dato) { this.dato = dato; }
-    public object Dato { get { return dato; } set { dato = value; } }
+    public class Nodo
+    {
+        private object dato;
+        public Nodo? Siguiente;
+
+        public Nodo(object dato)
+        {
+            this.dato = dato;
+            this.Siguiente = null;
+        }
+
+        public object Dato
+        {
+            get => dato;
+            set => dato = value;
+        }
+    }
 }

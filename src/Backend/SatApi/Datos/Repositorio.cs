@@ -6,27 +6,35 @@ using Backend.SatApi.Dominio;
 
 namespace Backend.SatApi.Datos
 {
+    // -------------------------------------------------------------------------
+    // Repositorio central de datos y persistencia en archivos JSON (Singleton)
+    // -------------------------------------------------------------------------
     public class Repositorio
     {
-        // Instancia única (Singleton) para mantener los datos en memoria mientras la API corre
         private static Repositorio? _instancia;
         public static Repositorio Instancia => _instancia ??= new Repositorio();
 
+        // Estructuras en memoria
         public ListaSimple Contribuyentes { get; set; } = new ListaSimple();
         public ListaSimple FacturasAprobadas { get; set; } = new ListaSimple();
         public ListaSimple FacturasRechazadas { get; set; } = new ListaSimple();
         public ListaSimple CorrelativosDiarios { get; set; } = new ListaSimple();
 
+        // Rutas de archivos en disco
         private readonly string rutaAlmacen;
         private readonly string rutaRtu;
         private readonly string rutaAprobadas;
         private readonly string rutaRechazadas;
         private readonly string rutaCorrelativos;
 
+        // ---------------------------------------------------------------------
+        // Inicialización y configuración de rutas
+        // ---------------------------------------------------------------------
+
         public Repositorio()
         {
-            // Ubicación de la carpeta Almacen (prioriza la carpeta del proyecto si se ejecuta desde allí)
             string dirActual = Path.Combine(Directory.GetCurrentDirectory(), "Almacen");
+
             if (Directory.Exists(dirActual))
             {
                 rutaAlmacen = dirActual;
@@ -48,6 +56,10 @@ namespace Backend.SatApi.Datos
             CargarDatos();
         }
 
+        // ---------------------------------------------------------------------
+        // Generación de Códigos de Autorización DTE (yyyymmdd########)
+        // ---------------------------------------------------------------------
+
         public long GenerarCodigoAutorizacion(DateTime fecha)
         {
             DateTime fechaSinHora = fecha.Date;
@@ -67,30 +79,85 @@ namespace Backend.SatApi.Datos
 
             if (registro == null)
             {
-                registro = new RegistroCorrelativo { Fecha = fechaSinHora, UltimoCorrelativo = 0 };
+                registro = new RegistroCorrelativo 
+                { 
+                    Fecha = fechaSinHora, 
+                    UltimoCorrelativo = 0 
+                };
                 CorrelativosDiarios.Insertar(registro);
             }
 
             registro.UltimoCorrelativo++;
 
-            // Formato: yyyyMMdd + ########
             string prefijoFecha = fechaSinHora.ToString("yyyyMMdd");
-            string sufijoCorrelativo = registro.UltimoCorrelativo.ToString("D8"); // 8 ceros
+            string sufijoCorrelativo = registro.UltimoCorrelativo.ToString("D8");
             
             return long.Parse(prefijoFecha + sufijoCorrelativo);
         }
+
+        // ---------------------------------------------------------------------
+        // Búsquedas y validaciones de unicidad
+        // ---------------------------------------------------------------------
 
         public bool ExisteReferencia(string referencia)
         {
             string refLimpia = referencia.Trim();
             Nodo? actual = FacturasAprobadas.Primero;
+
             while (actual != null)
             {
                 Factura f = (Factura)actual.Dato;
-                if (f.Referencia.Trim() == refLimpia) return true;
+                if (f.Referencia.Trim() == refLimpia)
+                {
+                    return true;
+                }
                 actual = actual.Siguiente;
             }
+
             return false;
+        }
+
+        public ContribuyenteDto? BuscarContribuyente(string nit)
+        {
+            if (string.IsNullOrWhiteSpace(nit))
+            {
+                return null;
+            }
+
+            string nitLimpio = nit.Trim().ToUpper();
+            Nodo? actual = Contribuyentes.Primero;
+
+            while (actual != null)
+            {
+                ContribuyenteDto c = (ContribuyenteDto)actual.Dato;
+                if (c.NIT.Trim().ToUpper() == nitLimpio)
+                {
+                    return c;
+                }
+                actual = actual.Siguiente;
+            }
+
+            return null;
+        }
+
+        // ---------------------------------------------------------------------
+        // Persistencia y guardado en disco
+        // ---------------------------------------------------------------------
+
+        public void GuardarRtu()
+        {
+            ContribuyenteDto[] arreglo = new ContribuyenteDto[Contribuyentes.Cantidad];
+            Nodo? actual = Contribuyentes.Primero;
+            int i = 0;
+
+            while (actual != null)
+            {
+                arreglo[i++] = (ContribuyenteDto)actual.Dato;
+                actual = actual.Siguiente;
+            }
+
+            string json = JsonSerializer.Serialize(arreglo, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(rutaRtu, json);
         }
 
         public void GuardarFacturasYCorrelativos()
@@ -105,14 +172,20 @@ namespace Backend.SatApi.Datos
             Array arreglo = Array.CreateInstance(tipoArreglo.GetElementType()!, lista.Cantidad);
             Nodo? actual = lista.Primero;
             int i = 0;
+
             while (actual != null)
             {
                 arreglo.SetValue(actual.Dato, i++);
                 actual = actual.Siguiente;
             }
+
             string json = JsonSerializer.Serialize(arreglo, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(ruta, json);
         }
+
+        // ---------------------------------------------------------------------
+        // Carga de datos desde archivos JSON
+        // ---------------------------------------------------------------------
 
         private void CargarDatos()
         {
@@ -121,60 +194,6 @@ namespace Backend.SatApi.Datos
             CargarLista(FacturasRechazadas, rutaRechazadas, typeof(Factura[]));
             CargarLista(CorrelativosDiarios, rutaCorrelativos, typeof(RegistroCorrelativo[]));
         }
-
-        private void CargarLista(ListaSimple listaDestino, string ruta, Type tipoArreglo)
-        {
-            if (!File.Exists(ruta)) return;
-            string json = File.ReadAllText(ruta);
-            if (string.IsNullOrWhiteSpace(json)) return;
-
-            Array? cargados = (Array?)JsonSerializer.Deserialize(json, tipoArreglo);
-            if (cargados != null)
-            {
-                for (int i = 0; i < cargados.Length; i++)
-                {
-                    listaDestino.Insertar(cargados.GetValue(i)!);
-                }
-            }
-        }
-
-        /// Recorre la ListaSimple nodo por nodo para buscar un contribuyente por su NIT.
-        public ContribuyenteDto? BuscarContribuyente(string nit)
-        {
-            if (string.IsNullOrWhiteSpace(nit)) return null;
-            string nitLimpio = nit.Trim().ToUpper();
-
-            Nodo? actual = Contribuyentes.Primero;
-            while (actual != null)
-            {
-                ContribuyenteDto c = (ContribuyenteDto)actual.Dato;
-                if (c.NIT.Trim().ToUpper() == nitLimpio)
-                {
-                    return c;
-                }
-                actual = actual.Siguiente;
-            }
-
-            return null;
-        }
-        /// Guarda todos los contribuyentes de la ListaSimple en Almacen/rtu.json
-        public void GuardarRtu()
-        {
-            // Convertimos la ListaSimple a un arreglo primitivo para poder serializarlo a JSON
-            ContribuyenteDto[] arreglo = new ContribuyenteDto[Contribuyentes.Cantidad];
-            Nodo? actual = Contribuyentes.Primero;
-            int i = 0;
-            while (actual != null)
-            {
-                arreglo[i++] = (ContribuyenteDto)actual.Dato;
-                actual = actual.Siguiente;
-            }
-
-            string json = JsonSerializer.Serialize(arreglo, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(rutaRtu, json);
-        }
-
-        /// Carga los datos de Almacen/rtu.json a la ListaSimple en memoria al iniciar
 
         public void CargarRtu()
         {
@@ -194,7 +213,27 @@ namespace Backend.SatApi.Datos
             }
         }
 
-        /// Reinicia todos los datos en memoria y borra los archivos almacenados.
+        private void CargarLista(ListaSimple listaDestino, string ruta, Type tipoArreglo)
+        {
+            if (!File.Exists(ruta)) return;
+
+            string json = File.ReadAllText(ruta);
+            if (string.IsNullOrWhiteSpace(json)) return;
+
+            Array? cargados = (Array?)JsonSerializer.Deserialize(json, tipoArreglo);
+            if (cargados != null)
+            {
+                for (int i = 0; i < cargados.Length; i++)
+                {
+                    listaDestino.Insertar(cargados.GetValue(i)!);
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Reinicio completo del sistema
+        // ---------------------------------------------------------------------
+
         public void LimpiarTodo()
         {
             Contribuyentes = new ListaSimple();
@@ -202,10 +241,10 @@ namespace Backend.SatApi.Datos
             FacturasRechazadas = new ListaSimple();
             CorrelativosDiarios = new ListaSimple();
 
-            if (File.Exists(rutaRtu)) File.Delete(rutaRtu);
-            if (File.Exists(rutaAprobadas)) File.Delete(rutaAprobadas);
-            if (File.Exists(rutaRechazadas)) File.Delete(rutaRechazadas);
-            if (File.Exists(rutaCorrelativos)) File.Delete(rutaCorrelativos);
+            try { if (File.Exists(rutaRtu)) File.Delete(rutaRtu); } catch { }
+            try { if (File.Exists(rutaAprobadas)) File.Delete(rutaAprobadas); } catch { }
+            try { if (File.Exists(rutaRechazadas)) File.Delete(rutaRechazadas); } catch { }
+            try { if (File.Exists(rutaCorrelativos)) File.Delete(rutaCorrelativos); } catch { }
         }
     }
 }

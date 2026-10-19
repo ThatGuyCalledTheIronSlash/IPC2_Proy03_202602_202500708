@@ -4,6 +4,9 @@ using Backend.SatApi.Dtos;
 
 namespace Backend.SatApi.Servicios
 {
+// -------------------------------------------------------------------------
+// Lógica de procesamiento y actualización del Registro Tributario Unificado
+// -------------------------------------------------------------------------
     public class ServicioRtu
     {
         private readonly Repositorio _repositorio;
@@ -13,7 +16,10 @@ namespace Backend.SatApi.Servicios
             _repositorio = repositorio ?? Repositorio.Instancia;
         }
 
-        /// Procesa un arreglo de ContribuyenteDto, aplicando las reglas de negocio del enunciado.
+// ---------------------------------------------------------------------
+// Procesamiento en lote de contribuyentes
+// ---------------------------------------------------------------------
+
         public RespuestaRtu ProcesarRtu(ContribuyenteDto[] listaEntrada)
         {
             RespuestaRtu respuesta = new RespuestaRtu();
@@ -27,26 +33,23 @@ namespace Backend.SatApi.Servicios
             {
                 ContribuyenteDto contribuyente = listaEntrada[i];
 
-                //Validar el algoritmo de módulo 11
+                // Validación de formato y dígito verificador
                 if (!ValidadorNit.EsValido(contribuyente.NIT))
                 {
                     respuesta.Invalidos++;
-                    // "si el NIT no es válido no tiene ningún efecto sobre el RTU"
                     continue;
                 }
 
-                //Si es válido, comprobar si ya existe en la lista
+                // Verificación de existencia previa en el registro
                 ContribuyenteDto? existente = _repositorio.BuscarContribuyente(contribuyente.NIT);
 
                 if (existente != null)
                 {
-                    // "si el NIT es válido y ya existe se actualizará el contribuyente en el RTU"
                     existente.Nombre = contribuyente.Nombre;
                     respuesta.Actualizados++;
                 }
                 else
                 {
-                    // "Si el NIT es válido y no existe en el RTU se crea un nuevo contribuyente"
                     ContribuyenteDto nuevo = new ContribuyenteDto
                     {
                         NIT = contribuyente.NIT.Trim().ToUpper(),
@@ -58,7 +61,7 @@ namespace Backend.SatApi.Servicios
                 }
             }
 
-            // Persistir los cambios en disco
+            // Persistencia del catálogo actualizado en disco
             _repositorio.GuardarRtu();
 
             return respuesta;

@@ -1,6 +1,8 @@
 using System;
 using System.Text.Json.Serialization;
 
+//
+
 public class Factura
 {
     // Propiedades en el JSON
