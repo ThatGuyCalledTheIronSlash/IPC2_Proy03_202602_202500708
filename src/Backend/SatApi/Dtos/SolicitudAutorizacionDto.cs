@@ -1,3 +1,5 @@
+using Backend.SatApi.Dominio;
+
 namespace Backend.SatApi.Dtos
 {
     public class SolicitudAutorizacionDto

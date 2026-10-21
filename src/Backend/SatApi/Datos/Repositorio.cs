@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using Backend.SatApi.Dtos;
@@ -19,6 +20,9 @@ namespace Backend.SatApi.Datos
         public ListaSimple FacturasAprobadas { get; set; } = new ListaSimple();
         public ListaSimple FacturasRechazadas { get; set; } = new ListaSimple();
         public ListaSimple CorrelativosDiarios { get; set; } = new ListaSimple();
+
+        // Conjunto indexado para validación de unicidad de referencias en tiempo O(1)
+        private readonly HashSet<string> _referenciasAprobadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Rutas de archivos en disco
         private readonly string rutaAlmacen;
@@ -101,20 +105,21 @@ namespace Backend.SatApi.Datos
 
         public bool ExisteReferencia(string referencia)
         {
-            string refLimpia = referencia.Trim();
-            Nodo? actual = FacturasAprobadas.Primero;
-
-            while (actual != null)
+            if (string.IsNullOrWhiteSpace(referencia))
             {
-                Factura f = (Factura)actual.Dato;
-                if (f.Referencia.Trim() == refLimpia)
-                {
-                    return true;
-                }
-                actual = actual.Siguiente;
+                return false;
             }
 
-            return false;
+            string refLimpia = referencia.Trim();
+            return _referenciasAprobadas.Contains(refLimpia);
+        }
+
+        public void AgregarReferencia(string referencia)
+        {
+            if (!string.IsNullOrWhiteSpace(referencia))
+            {
+                _referenciasAprobadas.Add(referencia.Trim());
+            }
         }
 
         public ContribuyenteDto? BuscarContribuyente(string nit)
@@ -193,6 +198,18 @@ namespace Backend.SatApi.Datos
             CargarLista(FacturasAprobadas, rutaAprobadas, typeof(Factura[]));
             CargarLista(FacturasRechazadas, rutaRechazadas, typeof(Factura[]));
             CargarLista(CorrelativosDiarios, rutaCorrelativos, typeof(RegistroCorrelativo[]));
+
+            // Sincronizar conjunto de referencias a partir de facturas aprobadas cargadas
+            _referenciasAprobadas.Clear();
+            Nodo? actual = FacturasAprobadas.Primero;
+            while (actual != null)
+            {
+                if (actual.Dato is Factura f && !string.IsNullOrWhiteSpace(f.Referencia))
+                {
+                    _referenciasAprobadas.Add(f.Referencia.Trim());
+                }
+                actual = actual.Siguiente;
+            }
         }
 
         public void CargarRtu()
@@ -240,6 +257,7 @@ namespace Backend.SatApi.Datos
             FacturasAprobadas = new ListaSimple();
             FacturasRechazadas = new ListaSimple();
             CorrelativosDiarios = new ListaSimple();
+            _referenciasAprobadas.Clear();
 
             try { if (File.Exists(rutaRtu)) File.Delete(rutaRtu); } catch { }
             try { if (File.Exists(rutaAprobadas)) File.Delete(rutaAprobadas); } catch { }
