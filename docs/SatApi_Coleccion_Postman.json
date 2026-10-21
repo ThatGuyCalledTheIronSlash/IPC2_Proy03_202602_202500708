@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "SAT DTE API - IPC2 Proyecto 3",
+    "description": "Colección oficial para pruebas y calificación de la API SAT DTE.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Inicializar Sistema",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/Inicializar",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "Inicializar"]
+        }
+      }
+    },
+    {
+      "name": "2. Procesar RTU",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  { \"NIT\": \"7378106\", \"nombre\": \"Empresa ABC, S.A.\" },\n  { \"NIT\": \"8338817\", \"nombre\": \"Comercial XYZ, S.A.\" },\n  { \"NIT\": \"1000002K\", \"nombre\": \"Importadora Quetzal, S.A.\" },\n  { \"NIT\": \"5123456\", \"nombre\": \"Servicios Integrales (Invalido)\" }\n]"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/Procesar",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "Procesar"]
+        }
+      }
+    },
+    {
+      "name": "3. Procesar Facturas Exitosas",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"TIEMPO\": \"Guatemala, 15/01/2025 15:25 hrs.\",\n    \"REFERENCIA\": \"A1001\",\n    \"NIT_EMISOR\": \"7378106\",\n    \"NIT_RECEPTOR\": \"8338817\",\n    \"VALOR\": 100.00,\n    \"IVA\": 12.00,\n    \"TOTAL\": 112.00\n  },\n  {\n    \"TIEMPO\": \"Guatemala, 15/01/2025 16:30 hrs.\",\n    \"REFERENCIA\": \"A1002\",\n    \"NIT_EMISOR\": \"8338817\",\n    \"NIT_RECEPTOR\": \"1000002K\",\n    \"VALOR\": 250.00,\n    \"IVA\": 30.00,\n    \"TOTAL\": 280.00\n  }\n]"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/Procesar",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "Procesar"]
+        }
+      }
+    },
+    {
+      "name": "4. Procesar Facturas con Errores",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"TIEMPO\": \"Guatemala, 15/01/2025 17:00 hrs.\",\n    \"REFERENCIA\": \"A1003\",\n    \"NIT_EMISOR\": \"1234560\",\n    \"NIT_RECEPTOR\": \"7378106\",\n    \"VALOR\": 100.00,\n    \"IVA\": 12.00,\n    \"TOTAL\": 112.00\n  },\n  {\n    \"TIEMPO\": \"Guatemala, 15/01/2025 17:15 hrs.\",\n    \"REFERENCIA\": \"A1004\",\n    \"NIT_EMISOR\": \"7378106\",\n    \"NIT_RECEPTOR\": \"8338817\",\n    \"VALOR\": 200.00,\n    \"IVA\": 15.00,\n    \"TOTAL\": 215.00\n  },\n  {\n    \"TIEMPO\": \"Guatemala, 15/01/2025 17:30 hrs.\",\n    \"REFERENCIA\": \"A1001\",\n    \"NIT_EMISOR\": \"7378106\",\n    \"NIT_RECEPTOR\": \"8338817\",\n    \"VALOR\": 50.00,\n    \"IVA\": 6.00,\n    \"TOTAL\": 56.00\n  }\n]"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/Procesar",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "Procesar"]
+        }
+      }
+    },
+    {
+      "name": "5. Consultar Contribuyente",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/ConsultaDatos?nit=7378106&emitidas=true&desde=2025-01-01&hasta=2025-12-31",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "ConsultaDatos"],
+          "query": [
+            { "key": "nit", "value": "7378106" },
+            { "key": "emitidas", "value": "true" },
+            { "key": "desde", "value": "2025-01-01" },
+            { "key": "hasta", "value": "2025-12-31" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Resumen de IVA por Fecha y NIT",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/ResumenIva?fecha=2025-01-15",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "ResumenIva"],
+          "query": [
+            { "key": "fecha", "value": "2025-01-15" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Resumen por Rango de Fechas (Con IVA)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/ResumenRango?desde=2025-01-01&hasta=2025-12-31&sinIva=false",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "ResumenRango"],
+          "query": [
+            { "key": "desde", "value": "2025-01-01" },
+            { "key": "hasta", "value": "2025-12-31" },
+            { "key": "sinIva", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Diagnóstico de Errores",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/ReporteErrores?desde=2025-01-01&hasta=2025-12-31",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "ReporteErrores"],
+          "query": [
+            { "key": "desde", "value": "2025-01-01" },
+            { "key": "hasta", "value": "2025-12-31" }
+          ]
+        }
+      }
+    }
+  ]
+}

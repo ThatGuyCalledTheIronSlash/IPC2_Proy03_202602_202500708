@@ -1,6 +1,57 @@
 @SatApi_HostAddress = http://localhost:5000
 
-GET {{SatApi_HostAddress}}/weatherforecast/
+### 1. Inicializar sistema (Reset total)
+POST {{SatApi_HostAddress}}/api/Inicializar
 Accept: application/json
 
-###
+### 2. Procesar RTU (Catálogo de Contribuyentes)
+POST {{SatApi_HostAddress}}/api/Procesar
+Content-Type: application/json
+
+[
+  { "NIT": "7378106", "nombre": "Empresa ABC, S.A." },
+  { "NIT": "8338817", "nombre": "Comercial XYZ, S.A." },
+  { "NIT": "1000002K", "nombre": "Importadora Quetzal, S.A." },
+  { "NIT": "5123456", "nombre": "Servicios Integrales (Invalido)" }
+]
+
+### 3. Procesar Facturas DTE (Autorizaciones)
+POST {{SatApi_HostAddress}}/api/Procesar
+Content-Type: application/json
+
+[
+  {
+    "TIEMPO": "Guatemala, 15/01/2025 15:25 hrs.",
+    "REFERENCIA": "A1001",
+    "NIT_EMISOR": "7378106",
+    "NIT_RECEPTOR": "8338817",
+    "VALOR": 100.00,
+    "IVA": 12.00,
+    "TOTAL": 112.00
+  },
+  {
+    "TIEMPO": "Guatemala, 15/01/2025 16:30 hrs.",
+    "REFERENCIA": "A1002",
+    "NIT_EMISOR": "8338817",
+    "NIT_RECEPTOR": "1000002K",
+    "VALOR": 250.00,
+    "IVA": 30.00,
+    "TOTAL": 280.00
+  }
+]
+
+### 4. Consultar Contribuyente (Facturas emitidas en rango)
+GET {{SatApi_HostAddress}}/api/ConsultaDatos?nit=7378106&emitidas=true&desde=2025-01-01&hasta=2025-12-31
+Accept: application/json
+
+### 5. Resumen de IVA por Fecha y NIT
+GET {{SatApi_HostAddress}}/api/ResumenIva?fecha=2025-01-15
+Accept: application/json
+
+### 6. Resumen por Rango de Fechas (Con IVA)
+GET {{SatApi_HostAddress}}/api/ResumenRango?desde=2025-01-01&hasta=2025-12-31&sinIva=false
+Accept: application/json
+
+### 7. Diagnóstico de Errores por Rango de Fechas
+GET {{SatApi_HostAddress}}/api/ReporteErrores?desde=2025-01-01&hasta=2025-12-31
+Accept: application/json
