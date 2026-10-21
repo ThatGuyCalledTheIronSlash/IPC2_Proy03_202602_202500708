@@ -9,7 +9,7 @@
         <div class="col-12">
             <h1 class="display-5 fw-bold text-dark">Enviar Mensaje</h1>
             <p class="lead text-muted">
-                Seleccione un archivo con extensión <code>.json</code> para actualizar el RTU o solicitar autorización de facturas (DTE).
+                Seleccione uno o varios archivos con extensión <code>.json</code> para actualizar el RTU o solicitar autorización de facturas (DTE).
             </p>
         </div>
     </div>
@@ -17,7 +17,7 @@
     @if (!string.IsNullOrEmpty(Model.MensajeError))
     {
         <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Error al comunicarse con la API</h5>
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Notificación</h5>
             <p class="mb-0">@Model.MensajeError</p>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -37,21 +37,21 @@
         <div class="col-lg-5">
             <div class="card shadow-sm border border-2 border-dark-subtle h-100">
                 <div class="card-header bg-dark text-white py-3">
-                    <h5 class="card-title mb-0">Seleccionar Archivo JSON</h5>
+                    <h5 class="card-title mb-0">Seleccionar Archivo(s) JSON</h5>
                 </div>
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data">
                         <div class="mb-4">
-                            <label for="archivoJson" class="form-label fw-semibold">Archivo de entrada:</label>
-                            <input class="form-control form-control-lg" type="file" id="archivoJson" name="ArchivoJson" accept=".json" required />
+                            <label for="archivosJson" class="form-label fw-semibold">Archivos de entrada:</label>
+                            <input class="form-control form-control-lg" type="file" id="archivosJson" name="ArchivosJson" accept=".json" multiple required />
                             <div class="form-text mt-2">
-                                Formatos admitidos: Archivo JSON con arreglo de contribuyentes (RTU) o solicitudes de facturas.
+                                Puede seleccionar uno o varios archivos <code>.json</code> manteniendo presionada la tecla Ctrl/Shift.
                             </div>
                         </div>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg shadow-sm">
-                                Procesar
+                                Procesar Solicitud
                             </button>
                         </div>
                     </form>
@@ -64,25 +64,45 @@
             <div class="card shadow-sm border border-2 border-dark-subtle h-100">
                 <div class="card-header bg-dark text-white py-3 d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">Respuesta de la API</h5>
-                    @if (!string.IsNullOrEmpty(Model.RespuestaJson))
+                    @if (Model.RespuestasProcesadas != null && Model.RespuestasProcesadas.Count > 0)
                     {
-                        <span class="badge bg-success">Respuesta Recibida</span>
+                        <span class="badge bg-success">@Model.RespuestasProcesadas.Count respuesta(s) recibida(s)</span>
                     }
                     else
                     {
                         <span class="badge bg-secondary">Esperando envío</span>
                     }
                 </div>
-                <div class="card-body bg-light">
-                    @if (!string.IsNullOrEmpty(Model.RespuestaJson))
+                <div class="card-body bg-light" style="max-height: 600px; overflow-y: auto;">
+                    @if (Model.RespuestasProcesadas != null && Model.RespuestasProcesadas.Count > 0)
                     {
-                        <pre class="p-3 bg-dark text-white rounded shadow-inner" style="max-height: 480px; overflow-y: auto; font-size: 0.88rem;"><code>@Model.RespuestaJson</code></pre>
+                        @foreach (var res in Model.RespuestasProcesadas)
+                        {
+                            <div class="mb-3 p-3 bg-white border rounded shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong class="text-dark">📄 @res.NombreArchivo</strong>
+                                    @if (res.EsExitoso)
+                                    {
+                                        <span class="badge bg-success">HTTP @res.CodigoEstado OK</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Error @res.CodigoEstado</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(res.Error))
+                                {
+                                    <div class="alert alert-danger py-2 small mb-2">@res.Error</div>
+                                }
+                                <pre class="p-3 bg-dark text-white rounded mb-0" style="max-height: 250px; overflow-y: auto; font-size: 0.85rem;"><code>@res.RespuestaFormateada</code></pre>
+                            </div>
+                        }
                     }
                     else
                     {
                         <div class="text-center py-5 text-muted">
                             <p class="mb-0">No se ha enviado ninguna solicitud todavía.</p>
-                            <small>Al seleccionar un archivo y presionar "Procesar", aquí se mostrará el JSON devuelto por la SAT.</small>
+                            <small>Al seleccionar archivo(s) y presionar "Procesar Solicitud", aquí se mostrará el JSON devuelto por la SAT.</small>
                         </div>
                     }
                 </div>

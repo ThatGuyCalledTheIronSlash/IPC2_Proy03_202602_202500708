@@ -8,17 +8,18 @@ namespace Frontend.Pages;
 public class IndexModel : PageModel
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _backendUrl;
 
-    public IndexModel(IHttpClientFactory httpClientFactory)
+    public IndexModel(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _httpClientFactory = httpClientFactory;
+        _backendUrl = (configuration["BackendUrl"] ?? "http://localhost:5000").TrimEnd('/');
     }
 
     [BindProperty]
-    public IFormFile? ArchivoJson { get; set; }
+    public List<IFormFile> ArchivosJson { get; set; } = new List<IFormFile>();
 
-    public string? ContenidoEnviado { get; set; }
-    public string? RespuestaJson { get; set; }
+    public List<ResultadoProcesamientoArchivo> RespuestasProcesadas { get; set; } = new List<ResultadoProcesamientoArchivo>();
     public string? MensajeError { get; set; }
     public string? MensajeExito { get; set; }
 
@@ -35,53 +36,95 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (ArchivoJson == null || ArchivoJson.Length == 0)
+        if (ArchivosJson == null || ArchivosJson.Count == 0)
         {
-            MensajeError = "Por favor selecciona un archivo JSON válido.";
+            MensajeError = "Por favor selecciona al menos un archivo JSON válido.";
             return Page();
         }
 
-        try
+        var client = _httpClientFactory.CreateClient();
+        int procesadosExitosos = 0;
+
+        foreach (var archivo in ArchivosJson)
         {
-            using var reader = new StreamReader(ArchivoJson.OpenReadStream());
-            string jsonContent = await reader.ReadToEndAsync();
-            ContenidoEnviado = jsonContent;
+            if (archivo.Length == 0) continue;
 
-            var client = _httpClientFactory.CreateClient();
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-            // Llamada a la Web API (SatApi)
-            var response = await client.PostAsync("http://localhost:5000/api/Procesar", content);
-            string responseBody = await response.Content.ReadAsStringAsync();
-
-            if (response.IsSuccessStatusCode)
+            var resultadoArchivo = new ResultadoProcesamientoArchivo
             {
-                // Formatear el JSON para mostrarlo indentado y legible
+                NombreArchivo = archivo.FileName
+            };
+
+            try
+            {
+                using var reader = new StreamReader(archivo.OpenReadStream());
+                string jsonContent = await reader.ReadToEndAsync();
+                resultadoArchivo.ContenidoEnviado = jsonContent;
+
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                var response = await client.PostAsync($"{_backendUrl}/api/Procesar", content);
+                string responseBody = await response.Content.ReadAsStringAsync();
+
+                resultadoArchivo.CodigoEstado = (int)response.StatusCode;
+                resultadoArchivo.EsExitoso = response.IsSuccessStatusCode;
+
                 try
                 {
                     using var jsonDoc = JsonDocument.Parse(responseBody);
-                    RespuestaJson = JsonSerializer.Serialize(jsonDoc, new JsonSerializerOptions { WriteIndented = true });
+                    resultadoArchivo.RespuestaFormateada = JsonSerializer.Serialize(jsonDoc, new JsonSerializerOptions { WriteIndented = true });
                 }
                 catch
                 {
-                    RespuestaJson = responseBody;
+                    resultadoArchivo.RespuestaFormateada = responseBody;
                 }
-                MensajeExito = "El archivo fue procesado exitosamente por la API.";
+
+                if (response.IsSuccessStatusCode)
+                {
+                    procesadosExitosos++;
+                }
+                else
+                {
+                    resultadoArchivo.Error = $"Código {(int)response.StatusCode}: {responseBody}";
+                }
             }
-            else
+            catch (HttpRequestException)
             {
-                MensajeError = $"La API respondió con error (Código {(int)response.StatusCode}): {responseBody}";
+                resultadoArchivo.EsExitoso = false;
+                resultadoArchivo.Error = $"No se pudo conectar con la API en {_backendUrl}. Verifique que el Backend esté en ejecución.";
             }
+            catch (Exception ex)
+            {
+                resultadoArchivo.EsExitoso = false;
+                resultadoArchivo.Error = $"Error inesperado: {ex.Message}";
+            }
+
+            RespuestasProcesadas.Add(resultadoArchivo);
         }
-        catch (HttpRequestException)
+
+        if (procesadosExitosos == ArchivosJson.Count)
         {
-            MensajeError = "No se pudo conectar con la API de la SAT en http://localhost:5000/. Asegúrate de que el proyecto Backend/SatApi esté corriendo con 'dotnet run'.";
+            MensajeExito = ArchivosJson.Count == 1 
+                ? "El archivo fue procesado exitosamente por la API." 
+                : $"Se procesaron exitosamente los {ArchivosJson.Count} archivos seleccionados.";
         }
-        catch (Exception ex)
+        else if (procesadosExitosos > 0)
         {
-            MensajeError = $"Error inesperado al procesar el archivo: {ex.Message}";
+            MensajeError = $"Se procesaron {procesadosExitosos} de {ArchivosJson.Count} archivos. Revise los detalles de respuesta a continuación.";
+        }
+        else
+        {
+            MensajeError = "No se pudo procesar la solicitud. Verifique los errores mostrados para cada archivo.";
         }
 
         return Page();
     }
+}
+
+public class ResultadoProcesamientoArchivo
+{
+    public string NombreArchivo { get; set; } = string.Empty;
+    public string ContenidoEnviado { get; set; } = string.Empty;
+    public string RespuestaFormateada { get; set; } = string.Empty;
+    public bool EsExitoso { get; set; }
+    public int CodigoEstado { get; set; }
+    public string? Error { get; set; }
 }
