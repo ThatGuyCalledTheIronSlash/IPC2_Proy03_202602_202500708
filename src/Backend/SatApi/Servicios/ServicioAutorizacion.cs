@@ -36,25 +36,25 @@ namespace Backend.SatApi.Servicios
             {
                 Factura factura = solicitud.Facturas[i];
 
-                //Extracción y parseo de fecha y hora
+                // Extracción y parseo de fecha y hora del DTE
+                // Si el formato de tiempo no contiene una fecha parseable, se toma la fecha del sistema como fallback
                 DateTime? fechaOpt = ExtractorTiempo.Extraer(factura.Tiempo);
                 factura.FechaParseada = fechaOpt ?? DateTime.Now;
 
-                //Validación de formato de NIT para emisor y receptor
+                // Validación de formato de NIT para emisor y receptor (algoritmo Módulo 11)
                 if (!ValidadorNit.EsValido(factura.NitEmisor))
                 {
-                    RechazarFactura(factura, TipoError.NitEmisorInvalido);
+                    RechazarFactura(factura, TipoError.NitEmisorInvalido.ToString());
                     continue;
                 }
 
                 if (!ValidadorNit.EsValido(factura.NitReceptor))
                 {
-                    RechazarFactura(factura, TipoError.NitReceptorInvalido);
+                    RechazarFactura(factura, TipoError.NitReceptorInvalido.ToString());
                     continue;
                 }
 
-                //Verificación de existencia de contribuyentes en el RTU
-                // Se evalúan ambos antes de decidir para poder incrementar los dos contadores si aplica
+                // Verificación de existencia de contribuyentes en el catálogo RTU
                 bool emisorExiste   = _repositorio.BuscarContribuyente(factura.NitEmisor)   != null;
                 bool receptorExiste = _repositorio.BuscarContribuyente(factura.NitReceptor) != null;
 
@@ -63,46 +63,64 @@ namespace Backend.SatApi.Servicios
                     if (!emisorExiste)   respuesta.Resultado.RechazadasEmisor++;
                     if (!receptorExiste) respuesta.Resultado.RechazadasReceptor++;
 
-                    // El motivo del rechazo es el primero que falla (el emisor tiene prioridad)
-                    TipoError motivoExistencia = !emisorExiste
-                        ? TipoError.NitEmisorInexistente
-                        : TipoError.NitReceptorInexistente;
+                    // Si faltan ambos, se registran ambos motivos separados por coma para que el reporte de errores los totalice
+                    string motivoExistencia;
+                    if (!emisorExiste && !receptorExiste)
+                    {
+                        motivoExistencia = $"{TipoError.NitEmisorInexistente},{TipoError.NitReceptorInexistente}";
+                    }
+                    else if (!emisorExiste)
+                    {
+                        motivoExistencia = TipoError.NitEmisorInexistente.ToString();
+                    }
+                    else
+                    {
+                        motivoExistencia = TipoError.NitReceptorInexistente.ToString();
+                    }
 
                     RechazarFactura(factura, motivoExistencia);
                     continue;
                 }
 
-                //Verificación de unicidad de referencia
-                if (_repositorio.ExisteReferencia(factura.Referencia))
+                // Verificación de unicidad de referencia (máximo 40 caracteres)
+                if (string.IsNullOrWhiteSpace(factura.Referencia) || _repositorio.ExisteReferencia(factura.Referencia))
                 {
-                    RechazarFactura(factura, TipoError.ReferenciaDuplicada);
+                    RechazarFactura(factura, TipoError.ReferenciaDuplicada.ToString());
                     continue;
                 }
 
-                //Validación de cálculos matemáticos de IVA (12%) y Total
+                // Validación de valor real positivo
+                if (factura.Valor <= 0)
+                {
+                    RechazarFactura(factura, TipoError.TotalMalCalculado.ToString());
+                    continue;
+                }
+
+                // Validación de cálculos matemáticos de IVA (12%) y Total
                 // Se acepta tanto redondeo comercial (AwayFromZero) como bancario (ToEven)
-                // para cubrir diferencias de herramienta con que el evaluador generó los datos
                 decimal ivaComercial = Math.Round(factura.Valor * 0.12m, 2, MidpointRounding.AwayFromZero);
                 decimal ivaBancario  = Math.Round(factura.Valor * 0.12m, 2, MidpointRounding.ToEven);
                 if (factura.Iva != ivaComercial && factura.Iva != ivaBancario)
                 {
-                    RechazarFactura(factura, TipoError.IvaMalCalculado);
+                    RechazarFactura(factura, TipoError.IvaMalCalculado.ToString());
                     continue;
                 }
 
                 decimal totalCalculado = factura.Valor + factura.Iva;
                 if (factura.Total != totalCalculado)
                 {
-                    RechazarFactura(factura, TipoError.TotalMalCalculado);
+                    RechazarFactura(factura, TipoError.TotalMalCalculado.ToString());
                     continue;
                 }
 
-// -------------------------------------------------------------
-// Aprobación y asignación de código correlativo
-// -------------------------------------------------------------
+                // -------------------------------------------------------------
+                // Aprobación y asignación de código correlativo diario
+                // El código se genera con la fecha actual de solicitud (DateTime.Now)
+                // -------------------------------------------------------------
                 factura.FueAprobada = true;
-                factura.CodigoAutorizacion = _repositorio.GenerarCodigoAutorizacion(factura.FechaParseada);
+                factura.CodigoAutorizacion = _repositorio.GenerarCodigoAutorizacion(DateTime.Now);
                 _repositorio.FacturasAprobadas.Insertar(factura);
+                _repositorio.AgregarReferencia(factura.Referencia);
 
                 respuesta.Resultado.Aprobadas++;
 
@@ -130,14 +148,14 @@ namespace Backend.SatApi.Servicios
             return respuesta;
         }
 
-// ---------------------------------------------------------------------
-// Registro de rechazo de factura
-// ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // Registro de rechazo de factura
+        // ---------------------------------------------------------------------
 
-        private void RechazarFactura(Factura factura, TipoError motivo)
+        private void RechazarFactura(Factura factura, string motivo)
         {
             factura.FueAprobada = false;
-            factura.MotivoRechazo = motivo.ToString();
+            factura.MotivoRechazo = motivo;
             _repositorio.FacturasRechazadas.Insertar(factura);
         }
     }

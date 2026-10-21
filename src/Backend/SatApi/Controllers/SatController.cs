@@ -8,12 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Backend.SatApi.Controllers
 {
-    // -------------------------------------------------------------------------
-    // Controlador REST HTTP para operaciones y consultas del simulador SAT
-    // -------------------------------------------------------------------------
     [ApiController]
     [Route("api/[action]")]
-    [Route("[action]")]           // ruta alternativa sin prefijo /api/
+    [Route("[action]")]          
     public class SatController : ControllerBase
     {
         private readonly ServicioRtu _servicioRtu;
@@ -54,20 +51,27 @@ namespace Backend.SatApi.Controllers
             // Identificación del tipo de datos por propiedad distintiva (case-insensitive)
             var primerElemento = arrayData[0];
 
-            // Carga de catálogo de contribuyentes (RTU): busca "nombre" / "Nombre" / "NOMBRE"
-            if (TienePropiedad(primerElemento, "nombre"))
+            try
             {
-                var contribuyentes = JsonSerializer.Deserialize<ContribuyenteDto[]>(arrayData.GetRawText(), OpcionesJson);
-                var respuesta = _servicioRtu.ProcesarRtu(contribuyentes!);
-                return Ok(respuesta);
+                // Carga de catálogo de contribuyentes (RTU): busca "nombre" / "Nombre" / "NOMBRE"
+                if (TienePropiedad(primerElemento, "nombre"))
+                {
+                    var contribuyentes = JsonSerializer.Deserialize<ContribuyenteDto[]>(arrayData.GetRawText(), OpcionesJson);
+                    var respuesta = _servicioRtu.ProcesarRtu(contribuyentes!);
+                    return Ok(respuesta);
+                }
+                // Solicitud de autorización de facturas (DTE): busca "VALOR" / "valor" / "Valor"
+                else if (TienePropiedad(primerElemento, "valor"))
+                {
+                    var facturas = JsonSerializer.Deserialize<Factura[]>(arrayData.GetRawText(), OpcionesJson);
+                    var dto = new SolicitudAutorizacionDto { Facturas = facturas! };
+                    var respuesta = _servicioAutorizacion.Procesar(dto);
+                    return Ok(respuesta);
+                }
             }
-            // Solicitud de autorización de facturas (DTE): busca "VALOR" / "valor" / "Valor"
-            else if (TienePropiedad(primerElemento, "valor"))
+            catch (JsonException ex)
             {
-                var facturas = JsonSerializer.Deserialize<Factura[]>(arrayData.GetRawText(), OpcionesJson);
-                var dto = new SolicitudAutorizacionDto { Facturas = facturas! };
-                var respuesta = _servicioAutorizacion.Procesar(dto);
-                return Ok(respuesta);
+                return BadRequest(new { error = "Error en el formato de los datos JSON: " + ex.Message });
             }
 
             return BadRequest(new { error = "Estructura JSON no reconocida. Envíe formato RTU o formato de Facturas." });
@@ -158,9 +162,7 @@ namespace Backend.SatApi.Controllers
         // Utilidades privadas
         // ---------------------------------------------------------------------
 
-        /// <summary>
-        /// Busca una propiedad en el JsonElement de manera insensible a mayúsculas/minúsculas.
-        /// </summary>
+        // Búsqueda de propiedad en JsonElement de manera insensible a mayúsculas/minúsculas
         private static bool TienePropiedad(JsonElement elemento, string nombrePropiedad)
         {
             foreach (var prop in elemento.EnumerateObject())
@@ -171,10 +173,7 @@ namespace Backend.SatApi.Controllers
             return false;
         }
 
-        /// <summary>
-        /// Parsea una cadena de fecha aceptando múltiples formatos comunes:
-        /// yyyy-MM-dd (ISO), dd/MM/yyyy (local guatemalteco), d/M/yyyy, etc.
-        /// </summary>
+        // Conversión de cadena a fecha admitiendo formatos comunes (ISO y local)
         private static bool ParsearFecha(string valor, out DateTime resultado)
         {
             if (string.IsNullOrWhiteSpace(valor))

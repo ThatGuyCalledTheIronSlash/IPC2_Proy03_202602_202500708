@@ -2,9 +2,9 @@ using System;
 
 namespace Backend.SatApi.Dominio
 {
-// -------------------------------------------------------------------------
-// Validador matemático de NIT mediante el algoritmo Módulo 11
-// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Validador matemático de NIT mediante el algoritmo Módulo 11
+    // -------------------------------------------------------------------------
     public class ValidadorNit
     {
         public static bool EsValido(string nit)
@@ -16,14 +16,15 @@ namespace Backend.SatApi.Dominio
 
             nit = nit.Trim().ToUpper();
 
-            if (nit.Length < 2)
+            // Longitud mínima: 2 (1 dígito + verificador). Máxima: 21 (hasta 20 dígitos + verificador)
+            if (nit.Length < 2 || nit.Length > 21)
             {
                 return false;
             }
 
-// -----------------------------------------------------------------
-// Cálculo de ponderación de derecha a izquierda (iniciando en peso 2)
-// -----------------------------------------------------------------
+            // -----------------------------------------------------------------
+            // Cálculo de ponderación de derecha a izquierda (iniciando en peso 2)
+            // -----------------------------------------------------------------
             int suma = 0;
             int posicion = 2;
 
@@ -39,9 +40,9 @@ namespace Backend.SatApi.Dominio
                 posicion++;
             }
 
-// -----------------------------------------------------------------
-// Aplicación de Módulo 11 y determinación del dígito verificador
-// -----------------------------------------------------------------
+            // -----------------------------------------------------------------
+            // Aplicación de Módulo 11 y determinación del dígito verificador
+            // -----------------------------------------------------------------
             int mod11 = suma % 11;
             int resta = 11 - mod11;
             int digitoEsperado = resta % 11;
