@@ -17,9 +17,9 @@ namespace Backend.SatApi.Servicios
             _repositorio = repositorio ?? Repositorio.Instancia;
         }
 
-// ---------------------------------------------------------------------
-//Reporte: Consultar Contribuyente (Facturas emitidas o recibidas)
-// ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // Reporte: Consultar Contribuyente (Facturas emitidas o recibidas)
+        // ---------------------------------------------------------------------
 
         public RespuestaConsultaDatosDto ConsultarContribuyente(string nit, bool emitidas, DateTime inicio, DateTime fin)
         {
@@ -44,7 +44,6 @@ namespace Backend.SatApi.Servicios
                         string fechaStr = f.FechaParseada.ToString("dd/MM/yyyy");
                         ReporteContribuyenteFechaDto? dtoFecha = null;
 
-                        // Búsqueda en lista acumulada
                         Nodo? actRes = resumenPorFecha.Primero;
                         while (actRes != null)
                         {
@@ -72,7 +71,7 @@ namespace Backend.SatApi.Servicios
                 actual = actual.Siguiente;
             }
 
-            // Conversión a arreglo
+            // Conversión a arreglo y ordenamiento cronológico por fecha
             respuesta.DetallePorFecha = new ReporteContribuyenteFechaDto[resumenPorFecha.Cantidad];
             Nodo? n = resumenPorFecha.Primero;
             int i = 0;
@@ -83,12 +82,14 @@ namespace Backend.SatApi.Servicios
                 n = n.Siguiente;
             }
 
+            Array.Sort(respuesta.DetallePorFecha, (a, b) => ParsearFechaLocal(a.Fecha).CompareTo(ParsearFechaLocal(b.Fecha)));
+
             return respuesta;
         }
 
-// ---------------------------------------------------------------------
-// Reporte: Resumen de IVA por Fecha y NIT
-// ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // Reporte: Resumen de IVA por Fecha y NIT
+        // ---------------------------------------------------------------------
 
         public ResumenIvaNitDto[] ResumenIvaPorFecha(DateTime fecha)
         {
@@ -117,6 +118,8 @@ namespace Backend.SatApi.Servicios
                 arreglo[i++] = (ResumenIvaNitDto)n.Dato;
                 n = n.Siguiente;
             }
+
+            Array.Sort(arreglo, (a, b) => string.Compare(a.Nit, b.Nit, StringComparison.OrdinalIgnoreCase));
 
             return arreglo;
         }
@@ -154,9 +157,9 @@ namespace Backend.SatApi.Servicios
             }
         }
 
-// ---------------------------------------------------------------------
-// Reporte: Resumen por Rango de Fechas (Con IVA o Sin IVA)
-// ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // Reporte: Resumen por Rango de Fechas (Con IVA o Sin IVA)
+        // ---------------------------------------------------------------------
 
         public ResumenRangoFechaDto[] ResumenPorRango(DateTime inicio, DateTime fin, bool sinIva)
         {
@@ -206,12 +209,14 @@ namespace Backend.SatApi.Servicios
                 n = n.Siguiente;
             }
 
+            Array.Sort(arreglo, (a, b) => ParsearFechaLocal(a.Fecha).CompareTo(ParsearFechaLocal(b.Fecha)));
+
             return arreglo;
         }
 
-// ---------------------------------------------------------------------
-// Reporte: Diagnóstico de Errores por Rango de Fechas
-// ---------------------------------------------------------------------
+        // ---------------------------------------------------------------------
+        // Reporte: Diagnóstico de Errores por Rango de Fechas
+        // ---------------------------------------------------------------------
 
         public ReporteErroresFechaDto[] ReporteErrores(DateTime inicio, DateTime fin)
         {
@@ -228,16 +233,14 @@ namespace Backend.SatApi.Servicios
                     ReporteErroresFechaDto dto = ObtenerOCrearReporte(resumenErrores, f.FechaParseada);
                     dto.TotalRecibidas++;
 
-                    if (f.MotivoRechazo == TipoError.NitEmisorInvalido.ToString())         dto.ErroresNitEmisorInvalido++;
-                    else if (f.MotivoRechazo == TipoError.NitReceptorInvalido.ToString())  dto.ErroresNitReceptorInvalido++;
-                    else if (f.MotivoRechazo == TipoError.NitEmisorInexistente.ToString()) dto.ErroresNitEmisorInexistente++;
-                    else if (f.MotivoRechazo == TipoError.NitReceptorInexistente.ToString()) dto.ErroresNitReceptorInexistente++;
-                    else if (f.MotivoRechazo == TipoError.IvaMalCalculado.ToString())      dto.ErroresIvaMalCalculado++;
-                    else if (f.MotivoRechazo == TipoError.TotalMalCalculado.ToString())    dto.ErroresTotalMalCalculado++;
-                    else if (f.MotivoRechazo == TipoError.ReferenciaDuplicada.ToString())  dto.ErroresReferenciaDuplicada++;
+                    if (f.MotivoRechazo.Contains(TipoError.NitEmisorInvalido.ToString()))         dto.ErroresNitEmisorInvalido++;
+                    if (f.MotivoRechazo.Contains(TipoError.NitReceptorInvalido.ToString()))       dto.ErroresNitReceptorInvalido++;
+                    if (f.MotivoRechazo.Contains(TipoError.NitEmisorInexistente.ToString()))      dto.ErroresNitEmisorInexistente++;
+                    if (f.MotivoRechazo.Contains(TipoError.NitReceptorInexistente.ToString()))    dto.ErroresNitReceptorInexistente++;
+                    if (f.MotivoRechazo.Contains(TipoError.IvaMalCalculado.ToString()))           dto.ErroresIvaMalCalculado++;
+                    if (f.MotivoRechazo.Contains(TipoError.TotalMalCalculado.ToString()))         dto.ErroresTotalMalCalculado++;
+                    if (f.MotivoRechazo.Contains(TipoError.ReferenciaDuplicada.ToString()))       dto.ErroresReferenciaDuplicada++;
 
-                    // Acumular NITs para el conteo de distintos (solo cuando el NIT es válido y existente)
-                    // Para rechazos por formato inválido o inexistente, aún queremos contar los que participaron
                     AgregarNitDistinto(dto.NitsEmisoresUnicos,   f.NitEmisor);
                     AgregarNitDistinto(dto.NitsReceptoresUnicos, f.NitReceptor);
                 }
@@ -264,7 +267,7 @@ namespace Backend.SatApi.Servicios
                 actualAprobadas = actualAprobadas.Siguiente;
             }
 
-            // Transferir conteos de NITs únicos al DTO y armar arreglo final
+            // Transferir conteos de NITs únicos al DTO y armar arreglo final ordenado por fecha
             ReporteErroresFechaDto[] arreglo = new ReporteErroresFechaDto[resumenErrores.Cantidad];
             Nodo? n = resumenErrores.Primero;
             int i = 0;
@@ -277,6 +280,8 @@ namespace Backend.SatApi.Servicios
                 arreglo[i++] = dto;
                 n = n.Siguiente;
             }
+
+            Array.Sort(arreglo, (a, b) => ParsearFechaLocal(a.Fecha).CompareTo(ParsearFechaLocal(b.Fecha)));
 
             return arreglo;
         }
@@ -301,9 +306,6 @@ namespace Backend.SatApi.Servicios
             return nuevo;
         }
 
-        /// <summary>
-        /// Agrega un NIT a una ListaSimple de strings únicos (sin duplicados).
-        /// </summary>
         private static void AgregarNitDistinto(ListaSimple lista, string nit)
         {
             if (string.IsNullOrWhiteSpace(nit)) return;
@@ -313,11 +315,20 @@ namespace Backend.SatApi.Servicios
 
             while (act != null)
             {
-                if ((string)act.Dato == nitLimpio) return; // ya existe
+                if ((string)act.Dato == nitLimpio) return;
                 act = act.Siguiente;
             }
 
             lista.Insertar(nitLimpio);
+        }
+
+        private static DateTime ParsearFechaLocal(string fechaStr)
+        {
+            if (DateTime.TryParseExact(fechaStr, "dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime resultado))
+            {
+                return resultado;
+            }
+            return DateTime.MinValue;
         }
     }
 }
