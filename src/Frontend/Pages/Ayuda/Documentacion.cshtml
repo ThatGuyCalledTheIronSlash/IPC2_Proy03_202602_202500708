@@ -1,47 +1,20 @@
 @page
 @model Frontend.Pages.Ayuda.DocumentacionModel
 @{
-    ViewData["Title"] = "Documentación del Programa - SAT";
+    ViewData["Title"] = "Redirigiendo a Documentación PDF...";
 }
 
-<div class="container py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-5 fw-bold text-dark">Documentación del Programa</h1>
-            <p class="lead text-muted">
-                Consulte el ensayo técnico, manual de usuario y diagramas del sistema en formato PDF.
-            </p>
-        </div>
+<div class="container py-5 text-center">
+    <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Cargando...</span>
     </div>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm border border-2 border-dark-subtle text-center">
-                <div class="card-header bg-dark text-white py-3">
-                    <h5 class="card-title mb-0">Documento Oficial del Proyecto</h5>
-                </div>
-                <div class="card-body p-5">
-                    <div class="mb-4">
-                        <i class="bi bi-file-earmark-pdf text-danger" style="font-size: 3.5rem;">📄</i>
-                        <h4 class="fw-bold mt-2">Ensayo y Documentación Técnica</h4>
-                        <p class="text-muted mx-auto" style="max-width: 500px;">
-                            Incluye la justificación de arquitectura, diagramas de clases, diagramas de actividades, diagrama de despliegue y conclusiones.
-                        </p>
-                    </div>
-
-                    <div class="d-inline-flex gap-3">
-                        <a href="~/docs/documentacion.pdf" target="_blank" class="btn btn-primary btn-lg shadow-sm">
-                            Abrir Documentación PDF
-                        </a>
-                        <a href="~/docs/documentacion.pdf" download class="btn btn-outline-dark btn-lg shadow-sm">
-                            Descargar Archivo
-                        </a>
-                    </div>
-                </div>
-                <div class="card-footer bg-light text-muted small py-2">
-                    Ubicación del archivo: <code>src/Frontend/wwwroot/docs/documentacion.pdf</code>
-                </div>
-            </div>
-        </div>
-    </div>
+    <h3 class="fw-bold">Redirigiendo a la documentación...</h3>
+    <p class="text-muted">
+        Si no se abre automáticamente en unos segundos, 
+        <a href="~/docs/documentacion.pdf" target="_blank" class="fw-bold text-decoration-underline">haz clic aquí para abrir el PDF</a>.
+    </p>
 </div>
+
+<script>
+    window.location.href = '@Url.Content("~/docs/documentacion.pdf")';
+</script>

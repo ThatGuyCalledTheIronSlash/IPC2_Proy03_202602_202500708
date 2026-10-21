@@ -36,8 +36,7 @@ namespace Backend.SatApi.Servicios
             {
                 Factura factura = solicitud.Facturas[i];
 
-                // Extracción y parseo de fecha y hora del DTE
-                // Si el formato de tiempo no contiene una fecha parseable, se toma la fecha del sistema como fallback
+                // Extracción y parseo de fecha y hora del DTE. Si el formato de tiempo no contiene una fecha parseable, se toma la fecha del sistema como fallback
                 DateTime? fechaOpt = ExtractorTiempo.Extraer(factura.Tiempo);
                 factura.FechaParseada = fechaOpt ?? DateTime.Now;
 
@@ -115,7 +114,6 @@ namespace Backend.SatApi.Servicios
 
                 // -------------------------------------------------------------
                 // Aprobación y asignación de código correlativo diario
-                // El código se genera con la fecha actual de solicitud (DateTime.Now)
                 // -------------------------------------------------------------
                 factura.FueAprobada = true;
                 factura.CodigoAutorizacion = _repositorio.GenerarCodigoAutorizacion(DateTime.Now);
