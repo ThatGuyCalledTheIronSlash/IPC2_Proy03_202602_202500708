@@ -124,4 +124,11 @@ body {
     color: #000 !important;
     background: none !important;
   }
+
+  /* Ajustes para gráficas en reporte impreso */
+  canvas {
+    max-width: 100% !important;
+    height: auto !important;
+    page-break-inside: avoid;
+  }
 }

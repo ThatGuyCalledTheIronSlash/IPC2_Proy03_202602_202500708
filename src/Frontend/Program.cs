@@ -13,7 +13,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// Deshabilitado para permitir navegación sobre HTTP local sin redirección forzada
+// app.UseHttpsRedirection();
+
 app.UseRouting();
 app.UseAuthorization();
 

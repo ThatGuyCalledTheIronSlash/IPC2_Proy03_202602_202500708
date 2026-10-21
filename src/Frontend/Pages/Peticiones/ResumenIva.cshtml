@@ -158,7 +158,7 @@
                             </div>
 
                             <!-- Gráfica Interactiva -->
-                            <div class="mt-4 pt-3 border-top no-print">
+                            <div class="mt-4 pt-3 border-top">
                                 <h6 class="fw-bold text-dark mb-3">Comparativa de IVA Emitido vs. Recibido por NIT</h6>
                                 <div style="height: 300px;">
                                     <canvas id="chartIva"></canvas>
@@ -198,7 +198,7 @@
             recibidos[i] = Model.Resultados[i].IvaRecibido;
         }
 
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="~/lib/chartjs/chart.umd.min.js"></script>
         <script>
             const nits = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(nits));
             const emitidos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(emitidos));

@@ -8,10 +8,12 @@ namespace Frontend.Pages.Peticiones
     public class ResumenRangoModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _backendUrl;
 
-        public ResumenRangoModel(IHttpClientFactory httpClientFactory)
+        public ResumenRangoModel(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
+            _backendUrl = (configuration["BackendUrl"] ?? "http://localhost:5000").TrimEnd('/');
         }
 
         [BindProperty]
@@ -29,7 +31,8 @@ namespace Frontend.Pages.Peticiones
 
         public void OnGet()
         {
-            Desde = new DateTime(DateTime.Now.Year, 1, 1);
+            // Rango predeterminado que abarca las fechas de prueba del enunciado (2025 en adelante)
+            Desde = new DateTime(2025, 1, 1);
             Hasta = DateTime.Now;
         }
 
@@ -50,7 +53,7 @@ namespace Frontend.Pages.Peticiones
             try
             {
                 var client = _httpClientFactory.CreateClient();
-                string url = $"http://localhost:5000/api/ResumenRango?desde={Desde.Value:yyyy-MM-dd}&hasta={Hasta.Value:yyyy-MM-dd}&sinIva={SinIva}";
+                string url = $"{_backendUrl}/api/ResumenRango?desde={Desde.Value:yyyy-MM-dd}&hasta={Hasta.Value:yyyy-MM-dd}&sinIva={SinIva}";
 
                 var response = await client.GetAsync(url);
                 string responseBody = await response.Content.ReadAsStringAsync();
@@ -67,7 +70,7 @@ namespace Frontend.Pages.Peticiones
             }
             catch (HttpRequestException)
             {
-                MensajeError = "No se pudo conectar con la API de la SAT en http://localhost:5000/. Asegúrese de que el Backend esté encendido.";
+                MensajeError = $"No se pudo conectar con la API de la SAT en {_backendUrl}. Asegúrese de que el Backend esté encendido.";
             }
             catch (Exception ex)
             {

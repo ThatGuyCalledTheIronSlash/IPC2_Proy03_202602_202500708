@@ -23,7 +23,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
+// Deshabilitado para permitir consumo directo sobre HTTP sin redirecciones inesperadas
+// app.UseHttpsRedirection();
+
 app.UseCors();
 app.UseAuthorization();
 app.MapControllers();

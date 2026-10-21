@@ -8,10 +8,12 @@ namespace Frontend.Pages.Peticiones
     public class ReporteErroresModel : PageModel
     {
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly string _backendUrl;
 
-        public ReporteErroresModel(IHttpClientFactory httpClientFactory)
+        public ReporteErroresModel(IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _httpClientFactory = httpClientFactory;
+            _backendUrl = (configuration["BackendUrl"] ?? "http://localhost:5000").TrimEnd('/');
         }
 
         [BindProperty]
@@ -26,7 +28,8 @@ namespace Frontend.Pages.Peticiones
 
         public void OnGet()
         {
-            Desde = new DateTime(DateTime.Now.Year, 1, 1);
+            // Rango predeterminado que abarca las fechas de prueba del enunciado (2025 en adelante)
+            Desde = new DateTime(2025, 1, 1);
             Hasta = DateTime.Now;
         }
 
@@ -47,7 +50,7 @@ namespace Frontend.Pages.Peticiones
             try
             {
                 var client = _httpClientFactory.CreateClient();
-                string url = $"http://localhost:5000/api/ReporteErrores?desde={Desde.Value:yyyy-MM-dd}&hasta={Hasta.Value:yyyy-MM-dd}";
+                string url = $"{_backendUrl}/api/ReporteErrores?desde={Desde.Value:yyyy-MM-dd}&hasta={Hasta.Value:yyyy-MM-dd}";
 
                 var response = await client.GetAsync(url);
                 string responseBody = await response.Content.ReadAsStringAsync();
@@ -64,7 +67,7 @@ namespace Frontend.Pages.Peticiones
             }
             catch (HttpRequestException)
             {
-                MensajeError = "No se pudo conectar con la API de la SAT en http://localhost:5000/. Asegúrese de que el Backend esté en ejecución.";
+                MensajeError = $"No se pudo conectar con la API de la SAT en {_backendUrl}. Asegúrese de que el Backend esté en ejecución.";
             }
             catch (Exception ex)
             {
