@@ -45,7 +45,7 @@ namespace Backend.SatApi.Controllers
 
             if (arrayData.GetArrayLength() == 0)
             {
-                return Ok(new { message = "Arreglo vacío recibido." });
+                return BadRequest(new { error = "El arreglo JSON está vacío. Debe contener al menos un elemento para procesar." });
             }
 
             // Identificación del tipo de datos por propiedad distintiva (case-insensitive)

@@ -36,79 +36,73 @@ namespace Backend.SatApi.Servicios
             {
                 Factura factura = solicitud.Facturas[i];
 
-                // Extracción y parseo de fecha y hora del DTE. Si el formato de tiempo no contiene una fecha parseable, se toma la fecha del sistema como fallback
+                // Extracción y parseo de fecha y hora del DTE. Si el formato no es válido o fecha inexistente, se descarta
                 DateTime? fechaOpt = ExtractorTiempo.Extraer(factura.Tiempo);
-                factura.FechaParseada = fechaOpt ?? DateTime.Now;
+                if (!fechaOpt.HasValue)
+                {
+                    // Descarte por formato: no contiene fecha y hora válidas
+                    continue;
+                }
+                factura.FechaParseada = fechaOpt.Value;
 
-                // Validación de formato de NIT para emisor y receptor (algoritmo Módulo 11)
+                ListaSimple erroresFactura = new ListaSimple();
+
+                //Verificación de NIT Emisor (formato Módulo 11 y existencia en RTU)
                 if (!ValidadorNit.EsValido(factura.NitEmisor))
                 {
-                    RechazarFactura(factura, TipoError.NitEmisorInvalido.ToString());
-                    continue;
+                    erroresFactura.Insertar(TipoError.NitEmisorInvalido.ToString());
+                }
+                else if (_repositorio.BuscarContribuyente(factura.NitEmisor) == null)
+                {
+                    erroresFactura.Insertar(TipoError.NitEmisorInexistente.ToString());
+                    respuesta.Resultado.RechazadasEmisor++;
                 }
 
+                //Verificación de NIT Receptor (formato Módulo 11 y existencia en RTU)
                 if (!ValidadorNit.EsValido(factura.NitReceptor))
                 {
-                    RechazarFactura(factura, TipoError.NitReceptorInvalido.ToString());
-                    continue;
+                    erroresFactura.Insertar(TipoError.NitReceptorInvalido.ToString());
                 }
-
-                // Verificación de existencia de contribuyentes en el catálogo RTU
-                bool emisorExiste   = _repositorio.BuscarContribuyente(factura.NitEmisor)   != null;
-                bool receptorExiste = _repositorio.BuscarContribuyente(factura.NitReceptor) != null;
-
-                if (!emisorExiste || !receptorExiste)
+                else if (_repositorio.BuscarContribuyente(factura.NitReceptor) == null)
                 {
-                    if (!emisorExiste)   respuesta.Resultado.RechazadasEmisor++;
-                    if (!receptorExiste) respuesta.Resultado.RechazadasReceptor++;
-
-                    // Si faltan ambos, se registran ambos motivos separados por coma para que el reporte de errores los totalice
-                    string motivoExistencia;
-                    if (!emisorExiste && !receptorExiste)
-                    {
-                        motivoExistencia = $"{TipoError.NitEmisorInexistente},{TipoError.NitReceptorInexistente}";
-                    }
-                    else if (!emisorExiste)
-                    {
-                        motivoExistencia = TipoError.NitEmisorInexistente.ToString();
-                    }
-                    else
-                    {
-                        motivoExistencia = TipoError.NitReceptorInexistente.ToString();
-                    }
-
-                    RechazarFactura(factura, motivoExistencia);
-                    continue;
+                    erroresFactura.Insertar(TipoError.NitReceptorInexistente.ToString());
+                    respuesta.Resultado.RechazadasReceptor++;
                 }
 
-                // Verificación de unicidad de referencia (máximo 40 caracteres)
+                //Verificación de Referencia única (máximo 40 posiciones)
                 if (string.IsNullOrWhiteSpace(factura.Referencia) || _repositorio.ExisteReferencia(factura.Referencia))
                 {
-                    RechazarFactura(factura, TipoError.ReferenciaDuplicada.ToString());
-                    continue;
+                    erroresFactura.Insertar(TipoError.ReferenciaDuplicada.ToString());
                 }
 
-                // Validación de valor real positivo
-                if (factura.Valor <= 0)
-                {
-                    RechazarFactura(factura, TipoError.TotalMalCalculado.ToString());
-                    continue;
-                }
-
-                // Validación de cálculos matemáticos de IVA (12%) y Total
-                // Se acepta tanto redondeo comercial (AwayFromZero) como bancario (ToEven)
+                //Verificación de IVA (12% con redondeo a 2 decimales)
                 decimal ivaComercial = Math.Round(factura.Valor * 0.12m, 2, MidpointRounding.AwayFromZero);
                 decimal ivaBancario  = Math.Round(factura.Valor * 0.12m, 2, MidpointRounding.ToEven);
                 if (factura.Iva != ivaComercial && factura.Iva != ivaBancario)
                 {
-                    RechazarFactura(factura, TipoError.IvaMalCalculado.ToString());
-                    continue;
+                    erroresFactura.Insertar(TipoError.IvaMalCalculado.ToString());
                 }
 
+                //Verificación matemática de Total (VALOR + IVA y valor positivo)
                 decimal totalCalculado = factura.Valor + factura.Iva;
-                if (factura.Total != totalCalculado)
+                if (factura.Valor <= 0 || factura.Total != totalCalculado)
                 {
-                    RechazarFactura(factura, TipoError.TotalMalCalculado.ToString());
+                    erroresFactura.Insertar(TipoError.TotalMalCalculado.ToString());
+                }
+
+                // Si se detectó uno o más errores, se registra el rechazo con todos los motivos
+                if (erroresFactura.Cantidad > 0)
+                {
+                    string[] motivosArray = new string[erroresFactura.Cantidad];
+                    Nodo? actErr = erroresFactura.Primero;
+                    int idxErr = 0;
+                    while (actErr != null)
+                    {
+                        motivosArray[idxErr++] = (string)actErr.Dato;
+                        actErr = actErr.Siguiente;
+                    }
+
+                    RechazarFactura(factura, string.Join(",", motivosArray));
                     continue;
                 }
 
